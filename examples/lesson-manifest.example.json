@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "manifestId": "manifest-original-ii-v-i-v1",
+  "lessonId": "lesson-ii-v-i-original-demo",
+  "title": "An Original ii-V-I Shell Voicing Exercise in C",
+  "genre": "jazz",
+  "interactiveStatus": "ready_for_local_demo",
+  "rightsId": "original-development-fixture",
+  "sourceVideoId": null,
+  "video": {"url": null, "durationMs": null, "note": "Replace with rights-cleared instructor video. No video sync implied."},
+  "timeSignature": {"numerator": 4, "denominator": 4},
+  "tempoMap": [{"beat": 0, "bpm": 72}],
+  "syncAnchors": [],
+  "totalBeats": 16,
+  "chordChanges": [
+    {"startBeat": 0, "symbol": "Dm7"},
+    {"startBeat": 4, "symbol": "G7"},
+    {"startBeat": 8, "symbol": "Cmaj7"},
+    {"startBeat": 12, "symbol": "Cmaj7"}
+  ],
+  "noteEvents": [
+    {"id": "n1", "pitch": 53, "startBeat": 0, "durationBeats": 4, "hand": "left", "role": "voicing"},
+    {"id": "n2", "pitch": 60, "startBeat": 0, "durationBeats": 4, "hand": "left", "role": "voicing"},
+    {"id": "n3", "pitch": 53, "startBeat": 4, "durationBeats": 4, "hand": "left", "role": "voicing"},
+    {"id": "n4", "pitch": 59, "startBeat": 4, "durationBeats": 4, "hand": "left", "role": "voicing"},
+    {"id": "n5", "pitch": 52, "startBeat": 8, "durationBeats": 4, "hand": "left", "role": "voicing"},
+    {"id": "n6", "pitch": 59, "startBeat": 8, "durationBeats": 4, "hand": "left", "role": "voicing"},
+    {"id": "n7", "pitch": 52, "startBeat": 12, "durationBeats": 4, "hand": "left", "role": "voicing"},
+    {"id": "n8", "pitch": 59, "startBeat": 12, "durationBeats": 4, "hand": "left", "role": "voicing"}
+  ],
+  "exercise": {"id": "exercise-shell-voicings-v1", "type": "exact_notes", "startBeat": 0, "endBeat": 16, "targetSkills": ["jazz-shell-voicings", "ii-v-i-guide-tone-motion"], "scorerVersion": "0.1.0", "allowedVoicingAlternatives": []},
+  "pedagogicalNote": "F3-C4 (Dm7 shell), F3-B3 (G7 shell), E3-B3 (Cmaj7 shell). A manually authored original sample, NOT extracted from user footage."
+}
