@@ -19,5 +19,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Check TypeScript
         run: npm run typecheck
+      - name: Unit tests — music evaluator
+        run: npm test
       - name: Build web app
         run: npm run build
