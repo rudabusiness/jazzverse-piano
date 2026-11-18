@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/music.test.mjs"
+    "test": "tsx --test tests/music.test.ts"
   },
   "dependencies": {
     "next": "^15.5.0",
@@ -19,6 +19,7 @@
     "typescript": "^5.9.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0"
+    "@types/react-dom": "^19.1.0",
+    "tsx": "^4.20.0"
   }
 }
