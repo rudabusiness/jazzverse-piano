@@ -35,3 +35,14 @@
 .keyboard .white-key { min-width: 0; }
 .keyboard .white-key small { left: 50%; transform: translateX(-50%); font-size: 9px; }
 .player-controls button:disabled { opacity: .55; cursor: default; }
+
+.tempo-control { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.tempo-control select {
+  background: #24283a;
+  color: inherit;
+  border: 1px solid #3f4357;
+  border-radius: 8px;
+  padding: 9px 6px;
+  font: inherit;
+}
+.tempo-control select:focus-visible { outline: 3px solid #8fd8f1; outline-offset: 3px; }

@@ -1,6 +1,6 @@
 import { noteName } from '@/lib/lesson';
 import { fixtureMusicXml, writtenPitch } from '@/lib/lesson-notation';
-import { timeline, type TimelineNote } from '@/lib/lesson-timeline';
+import { timeline, type PracticeTimeline, type TimelineNote } from '@/lib/lesson-timeline';
 
 const keys = Array.from({ length: 30 }, (_, index) => 43 + index);
 const whiteKeys = keys.filter(pitch => !writtenPitch(pitch).alter);
@@ -13,13 +13,13 @@ function lane(pitch: number) {
     : (whiteKeys.indexOf(pitch - 1) + 1) * laneWidth;
 }
 
-export function FallingNotes({ atMs, active }: { atMs: number; active: number[] }) {
-  const horizonMs = 4 * timeline.beatMs;
+export function FallingNotes({ atMs, active, practice }: { atMs: number; active: number[]; practice: PracticeTimeline }) {
+  const horizonMs = 4 * practice.beatMs;
   return (
     <div className="roll">
       <div className="falling-lanes" aria-hidden="true">
         {whiteKeys.map(pitch => <span key={pitch} className="lane-divider" style={{ left: `${lane(pitch) - laneWidth / 2}%` }} />)}
-        {timeline.notes.filter(note => note.endMs > atMs && note.atMs <= atMs + horizonMs).map(note => {
+        {practice.notes.filter(note => note.endMs > atMs && note.atMs <= atMs + horizonMs).map(note => {
           const top = Math.max(0, 100 - 100 * (note.endMs - atMs) / horizonMs);
           const bottom = Math.min(100, 100 - 100 * (note.atMs - atMs) / horizonMs);
           return <span key={note.id} data-note-id={note.id} className={`fall-note ${note.hand}`}
@@ -68,8 +68,8 @@ function WholeNote({ note, x, active }: { note: TimelineNote; x: number; active:
   );
 }
 
-export function PracticeScore({ atMs, activeNotes }: { atMs: number; activeNotes: TimelineNote[] }) {
-  const fraction = Math.max(0, Math.min(atMs / timeline.durationMs, 1));
+export function PracticeScore({ progress, activeNotes }: { progress: number; activeNotes: TimelineNote[] }) {
+  const fraction = Math.max(0, Math.min(progress, 1));
   const cursorX = Math.min(scoreEnd, scoreStart + onsetInset + fraction * (scoreEnd - scoreStart));
   return (
     <figure className="score">
@@ -92,7 +92,7 @@ export function PracticeScore({ atMs, activeNotes }: { atMs: number; activeNotes
             <g key={measure.chord}>
               <text x={x + 10} y="22" className="score-chord">{measure.chord}</text>
               <path className="score-line" d={`M${x + measureWidth} 35V${scoreBottom}`} />
-              {measure.notes.map(note => <WholeNote key={note.id} note={note} x={x + onsetInset} active={activeNotes.includes(note)} />)}
+              {measure.notes.map(note => <WholeNote key={note.id} note={note} x={x + onsetInset} active={activeNotes.some(active => active.id === note.id)} />)}
             </g>
           );
         })}

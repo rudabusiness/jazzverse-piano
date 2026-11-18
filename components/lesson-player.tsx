@@ -2,12 +2,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { FallingNotes, PracticeScore } from './practice-views';
 import { demoLesson, noteName } from '@/lib/lesson';
-import { captureOnset, evaluatePractice, positionAt, timeAt, timeline, type ClockSegment } from '@/lib/lesson-timeline';
+import { captureOnset, createPracticeTimeline, evaluatePractice, positionAt, timeAt, timeline, type ClockSegment } from '@/lib/lesson-timeline';
 import type { Evaluation, PlayedOnset } from '@/lib/music-engine';
 
-const initialPosition = -timeline.countInMs;
+const tempos = [50, 75, 100, 120].map(percent => createPracticeTimeline(demoLesson.bpm * percent / 100));
 
 export function LessonPlayer() {
+ const [practice, setPractice] = useState(timeline);
+ const practiceRef = useRef(timeline);
+ const initialPosition = -practice.countInMs;
  const [view, setView] = useState<'falling' | 'score' | 'hybrid'>('hybrid');
  const [status, setStatus] = useState('Liga um piano MIDI para começar.');
  const [active, setActive] = useState<number[]>([]);
@@ -33,18 +36,18 @@ export function LessonPlayer() {
    const segment = segmentRef.current;
    if (!segment) return;
    const now = timeAt(segment, Math.max(timestamp, segment.startedAt));
-   if (now < timeline.endMs) {
+   if (now < practice.endMs) {
     setAtMs(now);
     frame = requestAnimationFrame(tick);
     return;
    }
    segmentRef.current = null;
-   offsetRef.current = timeline.endMs;
-   setAtMs(timeline.endMs);
+   offsetRef.current = practice.endMs;
+   setAtMs(practice.endMs);
    setPlaying(false);
    setFinished(true);
    if (gradedInputRef.current && inputRef.current?.id === gradedInputRef.current) {
-    setResult(evaluatePractice(eventsRef.current));
+    setResult(evaluatePractice(eventsRef.current, practice));
    } else {
     setStatus('Guia concluído. Liga um teclado MIDI antes de iniciar uma tentativa com pontuação.');
    }
@@ -52,7 +55,7 @@ export function LessonPlayer() {
   };
   frame = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(frame);
- }, [playing]);
+ }, [playing, practice]);
 
  useEffect(() => () => {
   connectionGeneration.current += 1;
@@ -65,7 +68,7 @@ export function LessonPlayer() {
  function pause() {
   const segment = segmentRef.current;
   if (!segment) return;
-  offsetRef.current = Math.min(timeline.endMs, timeAt(segment, performance.now()));
+  offsetRef.current = Math.min(practiceRef.current.endMs, timeAt(segment, performance.now()));
   segmentRef.current = null;
   setAtMs(offsetRef.current);
   setPlaying(false);
@@ -73,10 +76,10 @@ export function LessonPlayer() {
 
  function restart() {
   segmentRef.current = null;
-  offsetRef.current = initialPosition;
+  offsetRef.current = -practiceRef.current.countInMs;
   eventsRef.current = [];
   gradedInputRef.current = null;
-  setAtMs(initialPosition);
+  setAtMs(offsetRef.current);
   setPlaying(false);
   setFinished(false);
   setWaitingForMidi(false);
@@ -84,6 +87,14 @@ export function LessonPlayer() {
   setResult(null);
   if (accessRef.current) bindInput(accessRef.current);
   else setStatus('Liga um piano MIDI para começar.');
+ }
+
+ function changeTempo(bpm: number) {
+  const next = tempos.find(option => option.bpm === bpm);
+  if (!next || next.bpm === practice.bpm) return;
+  practiceRef.current = next;
+  setPractice(next);
+  restart();
  }
 
  function togglePlayback() {
@@ -112,7 +123,7 @@ export function LessonPlayer() {
   setActive(previous => previous.includes(pitch) ? previous : [...previous, pitch]);
   const segment = segmentRef.current;
   if (!segment || !gradedInputRef.current || inputRef.current?.id !== gradedInputRef.current) return;
-  const onset = captureOnset(segment, event.timeStamp, pitch);
+  const onset = captureOnset(segment, event.timeStamp, pitch, practiceRef.current);
   if (!onset) return;
   eventsRef.current.push(onset);
   setEventCount(eventsRef.current.length);
@@ -170,7 +181,7 @@ export function LessonPlayer() {
   }
  }
 
- const position = positionAt(atMs);
+ const position = positionAt(atMs, practice);
  return (
   <main className="page">
    <div className="breadcrumb">CURSO / JAZZ / LIÇÃO 01</div>
@@ -179,7 +190,7 @@ export function LessonPlayer() {
      <h1>Primeiros voicings: ii–V–I</h1>
      <p className="muted">Uma introdução prática à harmonia jazzística em Dó maior.</p>
     </div>
-    <span className="pill">{demoLesson.bpm} BPM · {demoLesson.timeSignature.join('/')}</span>
+    <span className="pill">{practice.bpm} BPM · {demoLesson.timeSignature.join('/')}</span>
    </div>
    <div className="lesson-grid">
     <div className="lesson-main">
@@ -197,14 +208,20 @@ export function LessonPlayer() {
         <button aria-pressed={view === 'hybrid'} onClick={() => setView('hybrid')}>Híbrido</button>
        </div>
       </div>
-      {view !== 'falling' && <PracticeScore atMs={atMs} activeNotes={position.activeNotes} />}
-      {view !== 'score' && <FallingNotes atMs={atMs} active={active} />}
+      {view !== 'falling' && <PracticeScore progress={position.beat / demoLesson.durationBeats} activeNotes={position.activeNotes} />}
+      {view !== 'score' && <FallingNotes atMs={atMs} active={active} practice={practice} />}
       <div className="player-controls">
        <button className="primary" onClick={togglePlayback} disabled={waitingForMidi}>
         {playing ? 'Pausar' : finished ? 'Repetir' : atMs === initialPosition ? 'Reproduzir guia' : 'Retomar'}
        </button>
        <button onClick={restart}>Reiniciar</button>
        <button onClick={connect}>Ligar MIDI</button>
+       <label className="tempo-control">
+        Andamento
+        <select value={practice.bpm} onChange={event => changeTempo(Number(event.currentTarget.value))}>
+         {tempos.map(({ bpm }) => <option key={bpm} value={bpm}>{bpm} BPM</option>)}
+        </select>
+       </label>
        <span className="muted">
         {atMs < 0
          ? `Preparação · ${Math.ceil(-position.beat)}`
@@ -238,7 +255,7 @@ export function LessonPlayer() {
           <p className="muted">
            Omissões: {result.missCount} · Extras inesperadas: {result.unexpectedCount} · Tensões permitidas: {result.allowedTensionCount}
           </p>
-          <small>Regra provisória do SPEC · Avaliação só de ataques MIDI, sem persistência ainda.</small>
+          <small>{practice.bpm} BPM · {demoLesson.version} · Regra provisória do SPEC</small>
          </div>
        : <p className="muted">A pontuação será calculada no fim da tentativa. Liga o teclado MIDI antes de iniciar para obter pontuação.</p>}
      </div>

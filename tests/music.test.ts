@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluateOnsets } from '../lib/music-engine';
 import { fixtureMusicXml, writtenPitch } from '../lib/lesson-notation';
-import { captureOnset, evaluatePractice, positionAt, timeAt, timeline } from '../lib/lesson-timeline';
+import { captureOnset, createPracticeTimeline, evaluatePractice, positionAt, timeAt, timeline } from '../lib/lesson-timeline';
 
 const note=[{id:'n1',pitch:60,atMs:1000}];
 test('perfect performance is 100',()=>{const r=evaluateOnsets(note,[{pitch:60,atMs:1000}]);assert.equal(r.score,100);assert.equal(r.hitCount,1);});
@@ -74,4 +74,30 @@ test('count-in, pause and resume keep MIDI time aligned with rendered position',
  assert.equal(positionAt(secondChord.atMs).measure?.chord, 'G7');
  assert.equal(evaluatePractice([secondChord]).matches[0].deviationMs, 0);
  assert.equal(captureOnset(resumed, 28_500, 48), undefined);
+});
+
+test('practice tempos scale the count-in, chord positions and MIDI targets while preserving event IDs', () => {
+ for (const bpm of [30, 45, 60, 72]) {
+  const practice = createPracticeTimeline(bpm);
+  const clock = { startedAt: 1_000, offsetMs: -practice.countInMs };
+  assert.equal(practice.countInMs, 4 * 60_000 / bpm);
+  assert.equal(positionAt(-practice.countInMs, practice).beat, -4);
+  assert.deepEqual(practice.notes.map(note => note.id), timeline.notes.map(note => note.id));
+  for (const note of practice.notes) {
+   assert.equal(note.atMs, note.startBeat * practice.beatMs);
+   assert.equal(note.endMs, (note.startBeat + note.durationBeats) * practice.beatMs);
+   assert.ok(positionAt(note.atMs, practice).activeNotes.includes(note));
+  }
+  const onsets = practice.notes.map(note => {
+   const onset = captureOnset(clock, clock.startedAt + practice.countInMs + note.atMs, note.pitch, practice);
+   assert.ok(onset);
+   return onset;
+  });
+  assert.equal(evaluatePractice(onsets, practice).score, 100);
+  const secondChord = practice.measures[1].fromMs;
+  assert.equal(positionAt(secondChord, practice).measure?.chord, 'G7');
+  assert.equal(evaluatePractice([{ pitch: 43, atMs: secondChord + 150 }], practice).hitCount, 1);
+  assert.equal(evaluatePractice([{ pitch: 43, atMs: secondChord + 151 }], practice).hitCount, 0);
+  assert.throws(() => createPracticeTimeline(0), RangeError);
+ }
 });
