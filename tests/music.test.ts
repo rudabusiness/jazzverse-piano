@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluateOnsets } from '../lib/music-engine';
+import { metronomePulses } from '../lib/practice-metronome';
 import { fixtureMusicXml, writtenPitch } from '../lib/lesson-notation';
 import { captureOnset, createPracticeTimeline, evaluatePractice, positionAt, timeAt, timeline } from '../lib/lesson-timeline';
 
@@ -100,4 +101,16 @@ test('practice tempos scale the count-in, chord positions and MIDI targets while
   assert.equal(evaluatePractice([{ pitch: 43, atMs: secondChord + 151 }], practice).hitCount, 0);
   assert.throws(() => createPracticeTimeline(0), RangeError);
  }
+});
+
+test('metronome follows the count-in, selected tempo and resumed position', () => {
+ const practice = createPracticeTimeline(30);
+ const pulses = metronomePulses(practice, { startedAt: 1_000, offsetMs: -practice.countInMs });
+ assert.equal(pulses.length, 16);
+ assert.deepEqual(pulses.filter(pulse => pulse.accented).map(pulse => pulse.timestamp),
+  [1_000, 9_000, 17_000, 25_000]);
+ assert.equal(pulses.at(-1)?.timestamp, 31_000);
+ const resumed = metronomePulses(practice, { startedAt: 40_000, offsetMs: 7_250 });
+ assert.deepEqual(resumed[0], { timestamp: 40_750, accented: true });
+ assert.deepEqual(metronomePulses(practice, { startedAt: 40_000, offsetMs: practice.durationMs }), []);
 });

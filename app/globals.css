@@ -46,3 +46,4 @@
   font: inherit;
 }
 .tempo-control select:focus-visible { outline: 3px solid #8fd8f1; outline-offset: 3px; }
+.player-controls button[aria-pressed=true] { background: #4b3e63; border-color: #876ab3; }

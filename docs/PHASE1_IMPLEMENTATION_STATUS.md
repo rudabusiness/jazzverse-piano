@@ -9,6 +9,7 @@ This branch contains the **first application shell**, not a finished learning pl
 - Three synchronized practice views: falling notes, rendered two-staff notation for the original fixture, and hybrid. The fixture can also be downloaded as MusicXML with matching note IDs.
 - Web MIDI permissions, note-on/note-off highlight, device-state messaging.
 - Compact blue floating mascot with Eyes-only / Full and static explanatory popover.
+- Optional Web Audio metronome with accented downbeats during count-in and practice. Pausing, resetting or disabling the metronome cancels scheduled clicks.
 - One monotonic practice clock for both visual modes and MIDI attack timestamps, with a visual count-in, pause/resume, restart and four practice tempos. Changing tempo discards the current attempt and keeps the onset window fixed in milliseconds.
 - Clear UI labels for all unfinished features.
 - Deterministic onset evaluator (`lib/music-engine.ts`) implementing the **provisional** official SPEC MID-002..004 rubric: ±150 ms, duplicate protection, explicit jazz tensions, 70/30 score.

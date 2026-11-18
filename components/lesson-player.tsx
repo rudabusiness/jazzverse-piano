@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FallingNotes, PracticeScore } from './practice-views';
 import { demoLesson, noteName } from '@/lib/lesson';
 import { captureOnset, createPracticeTimeline, evaluatePractice, positionAt, timeAt, timeline, type ClockSegment } from '@/lib/lesson-timeline';
+import { PracticeMetronome } from '@/lib/practice-metronome';
 import type { Evaluation, PlayedOnset } from '@/lib/music-engine';
 
 const tempos = [50, 75, 100, 120].map(percent => createPracticeTimeline(demoLesson.bpm * percent / 100));
@@ -17,6 +18,10 @@ export function LessonPlayer() {
  const [eventCount, setEventCount] = useState(0);
  const [result, setResult] = useState<Evaluation | null>(null);
  const [playing, setPlaying] = useState(false);
+ const [metronomeEnabled, setMetronomeEnabled] = useState(false);
+ const [audioError, setAudioError] = useState('');
+ const audioRef = useRef<AudioContext | null>(null);
+ const metronomeRef = useRef<PracticeMetronome | null>(null);
  const [finished, setFinished] = useState(false);
  const [waitingForMidi, setWaitingForMidi] = useState(false);
  const [atMs, setAtMs] = useState(initialPosition);
@@ -57,8 +62,44 @@ export function LessonPlayer() {
   return () => cancelAnimationFrame(frame);
  }, [playing, practice]);
 
+ useEffect(() => {
+  const segment = segmentRef.current;
+  const metronome = metronomeRef.current;
+  if (!playing || !metronomeEnabled || !segment || !metronome) return;
+  metronome.start(practice, segment);
+  return () => metronome.stop();
+ }, [playing, metronomeEnabled, practice]);
+
+ async function toggleMetronome() {
+  if (metronomeEnabled) {
+   metronomeRef.current?.stop();
+   setMetronomeEnabled(false);
+   return;
+  }
+  try {
+   if (!audioRef.current) {
+    audioRef.current = new AudioContext();
+    metronomeRef.current = new PracticeMetronome(audioRef.current);
+   }
+   const context = audioRef.current;
+   await context.resume();
+   if (audioRef.current !== context) return;
+   setAudioError('');
+   setMetronomeEnabled(true);
+  } catch {
+   if (!audioRef.current || audioRef.current.state !== 'closed') {
+    setAudioError('Não foi possível ligar o metrónomo neste navegador.');
+   }
+  }
+ }
+
  useEffect(() => () => {
   connectionGeneration.current += 1;
+  metronomeRef.current?.stop();
+  const audio = audioRef.current;
+  audioRef.current = null;
+  metronomeRef.current = null;
+  if (audio && audio.state !== 'closed') void audio.close();
   if (inputRef.current) inputRef.current.onmidimessage = null;
   if (accessRef.current) accessRef.current.onstatechange = null;
   accessRef.current = null;
@@ -68,6 +109,7 @@ export function LessonPlayer() {
  function pause() {
   const segment = segmentRef.current;
   if (!segment) return;
+  metronomeRef.current?.stop();
   offsetRef.current = Math.min(practiceRef.current.endMs, timeAt(segment, performance.now()));
   segmentRef.current = null;
   setAtMs(offsetRef.current);
@@ -75,6 +117,7 @@ export function LessonPlayer() {
  }
 
  function restart() {
+  metronomeRef.current?.stop();
   segmentRef.current = null;
   offsetRef.current = -practiceRef.current.countInMs;
   eventsRef.current = [];
@@ -216,6 +259,7 @@ export function LessonPlayer() {
        </button>
        <button onClick={restart}>Reiniciar</button>
        <button onClick={connect}>Ligar MIDI</button>
+       <button aria-pressed={metronomeEnabled} onClick={toggleMetronome}>Metrónomo</button>
        <label className="tempo-control">
         Andamento
         <select value={practice.bpm} onChange={event => changeTempo(Number(event.currentTarget.value))}>
@@ -228,6 +272,7 @@ export function LessonPlayer() {
          : `${position.beat.toFixed(1)} / ${demoLesson.durationBeats} tempos`}
        </span>
       </div>
+      {audioError && <p className="midi-status" role="status">{audioError}</p>}
       <div className="midi-status" role="status">{status}</div>
      </div>
     </div>
