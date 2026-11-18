@@ -41,6 +41,14 @@ O **JazzVerse Piano** une a gamificação em tempo real, o ensino com professore
 
 ---
 
+## Prática ii–V–I
+
+Em `/lesson`, a cadência original de demonstração tem três compassos a 60 BPM. Notas descendentes, partitura e avaliação local usam os mesmos 12 eventos de `lib/lesson-timeline.ts`. O transporte tem um compasso de preparação visual, pausa e reinício. A troca de vista preserva a tentativa. Liga um teclado Web MIDI antes de começar para obter pontuação.
+
+A partitura incorporada desenha a cadência fixa diretamente desses eventos. O ficheiro MusicXML, disponível na vista Partitura e Híbrido, é gerado dos mesmos eventos e conserva os seus IDs. A importação de MusicXML externo e a sincronização com o vídeo do professor ficam para uma etapa posterior.
+
+Para verificar esta etapa, executa `npm install`, `npm run typecheck`, `npm test` e `npm run build`.
+
 ## 🛠️ Stack Tecnológica
 
 - **Frontend:** Next.js (App Router), React, TypeScript, Tailwind CSS, Lucide Icons.
