@@ -26,7 +26,7 @@ export function LessonPlayer(){
   const started=performance.now()-beat*60000/demoLesson.bpm;
   startedRef.current=started;
   let id=0;
-  const tick=()=>{if(!playRef.current)return;const b=(performance.now()-started)*demoLesson.bpm/60000;if(b>=demoLesson.durationBeats){setBeat(demoLesson.durationBeats);setPlaying(false);setResult(evaluateFixture(eventsRef.current));return;}setBeat(b);id=requestAnimationFrame(tick);};
+  const tick=()=>{if(!playRef.current)return;const b=(performance.now()-started)*demoLesson.bpm/60000;if(b>=demoLesson.durationBeats){setBeat(demoLesson.durationBeats);setPlaying(false);if(accessRef.current?.inputs.size){setResult(evaluateFixture(eventsRef.current));}else{setResult(null);setStatus('Tentativa terminada sem teclado MIDI ligado. Não foi atribuída pontuação.');}return;}setBeat(b);id=requestAnimationFrame(tick);};
   id=requestAnimationFrame(tick);return ()=>cancelAnimationFrame(id);
  },[playing]);
  useEffect(()=>()=>{if(accessRef.current)for(const input of accessRef.current.inputs.values())input.onmidimessage=null},[]);
