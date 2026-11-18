@@ -2,11 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { FallingNotes, PracticeScore } from './practice-views';
 import { demoLesson, noteName } from '@/lib/lesson';
-import { captureOnset, createPracticeTimeline, evaluatePractice, positionAt, timeAt, timeline, type ClockSegment } from '@/lib/lesson-timeline';
+import { advanceLoop, captureOnset, createPracticeTimeline, evaluatePractice, measureRanges, positionAt, timeAt, timeline, type ClockSegment, type MeasureRange } from '@/lib/lesson-timeline';
 import { PracticeMetronome } from '@/lib/practice-metronome';
 import type { Evaluation, PlayedOnset } from '@/lib/music-engine';
 
-const tempos = [50, 75, 100, 120].map(percent => createPracticeTimeline(demoLesson.bpm * percent / 100));
+const tempos = [50, 75, 100, 120].map(percent => demoLesson.bpm * percent / 100);
 
 export function LessonPlayer() {
  const [practice, setPractice] = useState(timeline);
@@ -40,7 +40,10 @@ export function LessonPlayer() {
   const tick = (timestamp: number) => {
    const segment = segmentRef.current;
    if (!segment) return;
-   const now = timeAt(segment, Math.max(timestamp, segment.startedAt));
+   const sample = Math.max(timestamp, segment.startedAt);
+   const loopSegment = advanceLoop(segment, sample, practice);
+   if (loopSegment) segmentRef.current = loopSegment;
+   const now = timeAt(loopSegment ?? segment, sample);
    if (now < practice.endMs) {
     setAtMs(now);
     frame = requestAnimationFrame(tick);
@@ -110,7 +113,10 @@ export function LessonPlayer() {
   const segment = segmentRef.current;
   if (!segment) return;
   metronomeRef.current?.stop();
-  offsetRef.current = Math.min(practiceRef.current.endMs, timeAt(segment, performance.now()));
+  const practice = practiceRef.current;
+  const timestamp = performance.now();
+  const current = advanceLoop(segment, timestamp, practice) ?? segment;
+  offsetRef.current = Math.min(practice.endMs, timeAt(current, timestamp));
   segmentRef.current = null;
   setAtMs(offsetRef.current);
   setPlaying(false);
@@ -132,9 +138,8 @@ export function LessonPlayer() {
   else setStatus('Liga um piano MIDI para começar.');
  }
 
- function changeTempo(bpm: number) {
-  const next = tempos.find(option => option.bpm === bpm);
-  if (!next || next.bpm === practice.bpm) return;
+ function changePractice(bpm: number, range?: MeasureRange) {
+  const next = createPracticeTimeline(bpm, range);
   practiceRef.current = next;
   setPractice(next);
   restart();
@@ -148,7 +153,7 @@ export function LessonPlayer() {
   if (waitingForMidi) return;
   if (finished) restart();
   if (offsetRef.current === initialPosition) {
-   gradedInputRef.current = inputRef.current?.id ?? null;
+   gradedInputRef.current = practice.range ? null : inputRef.current?.id ?? null;
   }
   segmentRef.current = { startedAt: performance.now(), offsetMs: offsetRef.current };
   setPlaying(true);
@@ -251,7 +256,7 @@ export function LessonPlayer() {
         <button aria-pressed={view === 'hybrid'} onClick={() => setView('hybrid')}>Híbrido</button>
        </div>
       </div>
-      {view !== 'falling' && <PracticeScore progress={position.beat / demoLesson.durationBeats} activeNotes={position.activeNotes} />}
+      {view !== 'falling' && <PracticeScore progress={(practice.startBeat + Math.max(0, position.beat)) / demoLesson.durationBeats} activeNotes={position.activeNotes} />}
       {view !== 'score' && <FallingNotes atMs={atMs} active={active} practice={practice} />}
       <div className="player-controls">
        <button className="primary" onClick={togglePlayback} disabled={waitingForMidi}>
@@ -262,14 +267,24 @@ export function LessonPlayer() {
        <button aria-pressed={metronomeEnabled} onClick={toggleMetronome}>Metrónomo</button>
        <label className="tempo-control">
         Andamento
-        <select value={practice.bpm} onChange={event => changeTempo(Number(event.currentTarget.value))}>
-         {tempos.map(({ bpm }) => <option key={bpm} value={bpm}>{bpm} BPM</option>)}
+        <select value={practice.bpm} onChange={event => changePractice(Number(event.currentTarget.value), practice.range)}>
+         {tempos.map(bpm => <option key={bpm} value={bpm}>{bpm} BPM</option>)}
+        </select>
+       </label>
+       <label className="tempo-control">
+        Repetição
+        <select value={practice.range ? measureRanges.indexOf(practice.range) : -1}
+         onChange={event => changePractice(practice.bpm, measureRanges[Number(event.currentTarget.value)])}>
+         <option value="-1">Desligada</option>
+         {measureRanges.map(({ first, last }, index) => (
+          <option key={index} value={index}>{first === last ? `Compasso ${first + 1}` : `Compassos ${first + 1}–${last + 1}`}</option>
+         ))}
         </select>
        </label>
        <span className="muted">
         {atMs < 0
          ? `Preparação · ${Math.ceil(-position.beat)}`
-         : `${position.beat.toFixed(1)} / ${demoLesson.durationBeats} tempos`}
+         : `${position.beat.toFixed(1)} / ${practice.durationBeats} tempos`}
        </span>
       </div>
       {audioError && <p className="midi-status" role="status">{audioError}</p>}
@@ -302,7 +317,9 @@ export function LessonPlayer() {
           </p>
           <small>{practice.bpm} BPM · {demoLesson.version} · Regra provisória do SPEC</small>
          </div>
-       : <p className="muted">A pontuação será calculada no fim da tentativa. Liga o teclado MIDI antes de iniciar para obter pontuação.</p>}
+       : <p className="muted">{practice.range
+          ? 'A repetição é um modo livre, sem pontuação.'
+          : 'A pontuação será calculada no fim da tentativa. Liga o teclado MIDI antes de iniciar para obter pontuação.'}</p>}
      </div>
     </aside>
    </div>

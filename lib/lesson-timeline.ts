@@ -7,19 +7,31 @@ const chords = [
   { chord: 'Cmaj7', allowedExtraPitchClasses: [2, 9] },
 ];
 
-export function createPracticeTimeline(bpm: number) {
+export type MeasureRange = { first: number; last: number };
+
+export const measureRanges = chords.flatMap((_, first) =>
+  chords.slice(first).map((_, offset) => ({ first, last: first + offset })),
+);
+
+export function createPracticeTimeline(bpm: number, range?: MeasureRange) {
   if (!Number.isFinite(bpm) || bpm <= 0) throw new RangeError('Invalid practice tempo');
   const beatMs = 60_000 / bpm;
   const [beatsPerMeasure] = demoLesson.timeSignature;
-  const durationMs = demoLesson.durationBeats * beatMs;
+  if (range && !measureRanges.some(({ first, last }) => first === range.first && last === range.last)) {
+    throw new RangeError('Invalid measure range');
+  }
+  const firstMeasure = range?.first ?? 0;
+  const startBeat = firstMeasure * beatsPerMeasure;
+  const durationBeats = ((range?.last ?? chords.length - 1) - firstMeasure + 1) * beatsPerMeasure;
+  const durationMs = durationBeats * beatMs;
   const notes = demoLesson.notes.map((note, index) => ({
     ...note,
     id: `note-${index}`,
     pitch: note.midi,
-    atMs: note.startBeat * beatMs,
-    endMs: (note.startBeat + note.durationBeats) * beatMs,
-  }));
-  const measures = chords.map((harmony, index) => {
+    atMs: (note.startBeat - startBeat) * beatMs,
+    endMs: (note.startBeat - startBeat + note.durationBeats) * beatMs,
+  })).filter(note => note.atMs >= 0 && note.atMs < durationMs);
+  const measures = chords.slice(firstMeasure, firstMeasure + durationBeats / beatsPerMeasure).map((harmony, index) => {
     const fromMs = index * beatsPerMeasure * beatMs;
     const toMs = (index + 1) * beatsPerMeasure * beatMs;
     return {
@@ -31,6 +43,9 @@ export function createPracticeTimeline(bpm: number) {
 
   return {
     bpm,
+    range,
+    startBeat,
+    durationBeats,
     beatMs,
     countInMs: beatsPerMeasure * beatMs,
     durationMs,
@@ -71,4 +86,14 @@ export function captureOnset(segment: ClockSegment, timestamp: number, pitch: nu
 export function evaluatePractice(performed: readonly PlayedOnset[], practice = timeline) {
   const targets = practice.notes.map(({ id, pitch, atMs }) => ({ id, pitch, atMs }));
   return evaluateOnsets(targets, performed, practice.measures);
+}
+
+/** Preserve the beat grid if a frame arrives after one or more loop boundaries. */
+export function advanceLoop(segment: ClockSegment, timestamp: number, practice: PracticeTimeline): ClockSegment | undefined {
+  const elapsed = timeAt(segment, timestamp);
+  if (!practice.range || elapsed < practice.durationMs) return;
+  return {
+    startedAt: segment.startedAt - segment.offsetMs + Math.floor(elapsed / practice.durationMs) * practice.durationMs,
+    offsetMs: 0,
+  };
 }

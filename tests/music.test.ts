@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { evaluateOnsets } from '../lib/music-engine';
 import { metronomePulses } from '../lib/practice-metronome';
 import { fixtureMusicXml, writtenPitch } from '../lib/lesson-notation';
-import { captureOnset, createPracticeTimeline, evaluatePractice, positionAt, timeAt, timeline } from '../lib/lesson-timeline';
+import { advanceLoop, captureOnset, createPracticeTimeline, evaluatePractice, positionAt, timeAt, timeline } from '../lib/lesson-timeline';
 
 const note=[{id:'n1',pitch:60,atMs:1000}];
 test('perfect performance is 100',()=>{const r=evaluateOnsets(note,[{pitch:60,atMs:1000}]);assert.equal(r.score,100);assert.equal(r.hitCount,1);});
@@ -113,4 +113,23 @@ test('metronome follows the count-in, selected tempo and resumed position', () =
  const resumed = metronomePulses(practice, { startedAt: 40_000, offsetMs: 7_250 });
  assert.deepEqual(resumed[0], { timestamp: 40_750, accented: true });
  assert.deepEqual(metronomePulses(practice, { startedAt: 40_000, offsetMs: practice.durationMs }), []);
+});
+
+test('a selected measure repeats on the original beat grid with matching note IDs and pulses', () => {
+ const practice = createPracticeTimeline(30, { first: 1, last: 1 });
+ assert.equal(practice.startBeat, 4);
+ assert.equal(practice.durationMs, 8_000);
+ assert.equal(positionAt(0, practice).measure?.chord, 'G7');
+ assert.deepEqual(practice.notes.map(note => note.id), ['note-4', 'note-5', 'note-6', 'note-7']);
+ const segment = { startedAt: 1_000, offsetMs: -8_000 };
+ assert.equal(advanceLoop(segment, 16_999, practice), undefined);
+ assert.deepEqual(advanceLoop(segment, 17_000, practice), { startedAt: 17_000, offsetMs: 0 });
+ const resumed = { startedAt: 10_000, offsetMs: 3_000 };
+ const afterSkippedCycles = advanceLoop(resumed, 32_250, practice);
+ assert.deepEqual(afterSkippedCycles, { startedAt: 31_000, offsetMs: 0 });
+ assert.equal(timeAt(afterSkippedCycles!, 32_250), 1_250);
+ assert.equal(metronomePulses(practice, segment).length, 8);
+ assert.deepEqual(metronomePulses(practice, afterSkippedCycles!).map(pulse => pulse.timestamp),
+  [31_000, 33_000, 35_000, 37_000]);
+ assert.throws(() => createPracticeTimeline(60, { first: 2, last: 1 }), RangeError);
 });
