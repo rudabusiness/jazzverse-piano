@@ -9,6 +9,7 @@ This branch contains the **first application shell**, not a finished learning pl
 - Three synchronized practice views: falling notes, rendered two-staff notation for the original fixture, and hybrid. The fixture can also be downloaded as MusicXML with matching note IDs.
 - Web MIDI permissions, note-on/note-off highlight, device-state messaging.
 - Compact blue floating mascot with Eyes-only / Full and static explanatory popover.
+- Experimental local acoustic-piano recognition via PitchPlease, with per-chord detection summaries. Microphone mode does not assign a timing score.
 - Measure-range looping for ungraded practice, with a count-in on the first pass and a continuous beat grid across the wrap.
 - Optional Web Audio metronome with accented downbeats during count-in and practice. Pausing, resetting or disabling the metronome cancels scheduled clicks.
 - One monotonic practice clock for both visual modes and MIDI attack timestamps, with a visual count-in, pause/resume, restart and four practice tempos. Changing tempo discards the current attempt and keeps the onset window fixed in milliseconds.

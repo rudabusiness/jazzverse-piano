@@ -1,11 +1,14 @@
 'use client';
+import { create, type Detector } from '@markusstrasser/pitchplease';
 import { useEffect, useRef, useState } from 'react';
 import { FallingNotes, PracticeScore } from './practice-views';
 import { demoLesson, noteName } from '@/lib/lesson';
 import { advanceLoop, captureOnset, createPracticeTimeline, evaluatePractice, measureRanges, positionAt, timeAt, timeline, type ClockSegment, type MeasureRange } from '@/lib/lesson-timeline';
 import { PracticeMetronome } from '@/lib/practice-metronome';
+import { observeMicrophoneFrame, summarizeMicrophone, type MicrophoneEvidence } from '@/lib/microphone-feedback';
 import type { Evaluation, PlayedOnset } from '@/lib/music-engine';
 
+const microphonePrompt = 'Toca com o microfone ou usa um teclado MIDI.';
 const tempos = [50, 75, 100, 120].map(percent => demoLesson.bpm * percent / 100);
 
 export function LessonPlayer() {
@@ -13,7 +16,7 @@ export function LessonPlayer() {
  const practiceRef = useRef(timeline);
  const initialPosition = -practice.countInMs;
  const [view, setView] = useState<'falling' | 'score' | 'hybrid'>('hybrid');
- const [status, setStatus] = useState('Liga um piano MIDI para começar.');
+ const [status, setStatus] = useState(microphonePrompt);
  const [active, setActive] = useState<number[]>([]);
  const [eventCount, setEventCount] = useState(0);
  const [result, setResult] = useState<Evaluation | null>(null);
@@ -33,6 +36,12 @@ export function LessonPlayer() {
  const offsetRef = useRef(initialPosition);
  const eventsRef = useRef<PlayedOnset[]>([]);
  const gradedInputRef = useRef<string | null>(null);
+ const microphoneRef = useRef<Detector | null>(null);
+ const microphoneNotes = useRef<number[]>([]);
+ const microphoneEvidence = useRef<MicrophoneEvidence>(new Map());
+ const [microphoneState, setMicrophoneState] = useState<'off' | 'starting' | 'on'>('off');
+ const [microphoneResult, setMicrophoneResult] = useState<ReturnType<typeof summarizeMicrophone> | null>(null);
+
 
  useEffect(() => {
   if (!playing) return;
@@ -54,10 +63,14 @@ export function LessonPlayer() {
    setAtMs(practice.endMs);
    setPlaying(false);
    setFinished(true);
-   if (gradedInputRef.current && inputRef.current?.id === gradedInputRef.current) {
+   if (microphoneRef.current) {
+    setMicrophoneResult(summarizeMicrophone(microphoneEvidence.current, practice));
+    stopMicrophone();
+    setStatus('Análise pelo microfone concluída.');
+   } else if (gradedInputRef.current && inputRef.current?.id === gradedInputRef.current) {
     setResult(evaluatePractice(eventsRef.current, practice));
    } else {
-    setStatus('Guia concluído. Liga um teclado MIDI antes de iniciar uma tentativa com pontuação.');
+    setStatus('Guia concluído. Experimenta tocar com o microfone ou com MIDI.');
    }
    gradedInputRef.current = null;
   };
@@ -98,6 +111,9 @@ export function LessonPlayer() {
 
  useEffect(() => () => {
   connectionGeneration.current += 1;
+  const microphone = microphoneRef.current;
+  microphoneRef.current = null;
+  microphone?.stop();
   metronomeRef.current?.stop();
   const audio = audioRef.current;
   audioRef.current = null;
@@ -134,8 +150,11 @@ export function LessonPlayer() {
   setWaitingForMidi(false);
   setEventCount(0);
   setResult(null);
-  if (accessRef.current) bindInput(accessRef.current);
-  else setStatus('Liga um piano MIDI para começar.');
+  setMicrophoneResult(null);
+  microphoneEvidence.current.clear();
+  if (microphoneRef.current) setStatus('A escutar o piano. O áudio é processado neste navegador.');
+  else if (accessRef.current) bindInput(accessRef.current);
+  else setStatus(microphonePrompt);
  }
 
  function changePractice(bpm: number, range?: MeasureRange) {
@@ -153,14 +172,14 @@ export function LessonPlayer() {
   if (waitingForMidi) return;
   if (finished) restart();
   if (offsetRef.current === initialPosition) {
-   gradedInputRef.current = practice.range ? null : inputRef.current?.id ?? null;
+   gradedInputRef.current = practice.range || microphoneRef.current ? null : inputRef.current?.id ?? null;
   }
   segmentRef.current = { startedAt: performance.now(), offsetMs: offsetRef.current };
   setPlaying(true);
  }
 
  function handleMidi(event: MIDIMessageEvent) {
-  if (!event.data || event.data.length < 3) return;
+  if (microphoneRef.current || !event.data || event.data.length < 3) return;
   const [status, pitch, velocity] = event.data;
   const type = status & 0xf0;
   if (type === 0x80 || (type === 0x90 && velocity === 0)) {
@@ -186,10 +205,11 @@ export function LessonPlayer() {
    : inputs.find(input => input.id === previous?.id) ?? inputs[0];
   if (previous !== (next ?? null)) {
    if (previous) previous.onmidimessage = null;
-   setActive([]);
+   if (!microphoneRef.current) setActive([]);
    inputRef.current = next ?? null;
    if (next) next.onmidimessage = handleMidi;
   }
+  if (microphoneRef.current) return;
   if (next) {
    setWaitingForMidi(false);
    setStatus(`MIDI ligado: ${next.name ?? 'Teclado'}`);
@@ -200,6 +220,60 @@ export function LessonPlayer() {
   } else {
    setStatus(previous ? 'Teclado MIDI desligado.' : 'Permissão concedida, mas nenhum teclado MIDI foi encontrado.');
   }
+ }
+
+ function stopMicrophone() {
+  const microphone = microphoneRef.current;
+  microphoneRef.current = null;
+  microphone?.stop();
+  microphoneNotes.current = [];
+  setMicrophoneState('off');
+  setActive([]);
+ }
+
+ async function playWithMicrophone() {
+  if (microphoneRef.current) {
+   stopMicrophone();
+   restart();
+   return;
+  }
+  restart();
+  setActive([]);
+  setMicrophoneState('starting');
+  setStatus('A preparar o microfone…');
+  const microphone = create({
+   model: 'piano',
+   assetBaseUrl: '/pitchplease/',
+   onNotes(notes) {
+    if (microphoneRef.current !== microphone) return;
+    const pitches = notes.map(note => note.midi);
+    if (pitches.length !== microphoneNotes.current.length ||
+     pitches.some((pitch, index) => pitch !== microphoneNotes.current[index])) {
+     microphoneNotes.current = pitches;
+     setActive(pitches);
+    }
+    const segment = segmentRef.current;
+    const practice = practiceRef.current;
+    if (segment && !practice.range) {
+     // Recognition arrives after the attack. Use it for chord evidence, never for a timing grade.
+     observeMicrophoneFrame(microphoneEvidence.current, practice, timeAt(segment, performance.now()), pitches);
+    }
+   },
+   onError(error) {
+    if (microphoneRef.current !== microphone) return;
+    stopMicrophone();
+    restart();
+    setStatus(error.code === 'mic-denied'
+     ? 'Autoriza o microfone nas permissões do navegador para tocar sem cabo.'
+     : 'O microfone ficou indisponível. Tenta novamente ou usa MIDI.');
+   },
+  });
+  microphoneRef.current = microphone;
+  if (!await microphone.start() || microphoneRef.current !== microphone) return;
+  setMicrophoneState('on');
+  setStatus('A escutar o piano. O áudio é processado neste navegador.');
+  segmentRef.current = { startedAt: performance.now(), offsetMs: offsetRef.current };
+  setPlaying(true);
  }
 
  async function connect() {
@@ -259,11 +333,14 @@ export function LessonPlayer() {
       {view !== 'falling' && <PracticeScore progress={(practice.startBeat + Math.max(0, position.beat)) / demoLesson.durationBeats} activeNotes={position.activeNotes} />}
       {view !== 'score' && <FallingNotes atMs={atMs} active={active} practice={practice} />}
       <div className="player-controls">
-       <button className="primary" onClick={togglePlayback} disabled={waitingForMidi}>
+       <button className="primary" onClick={playWithMicrophone} disabled={playing && microphoneState === 'off'}>
+        {microphoneState === 'on' ? 'Parar microfone' : microphoneState === 'starting' ? 'Cancelar microfone' : 'Tocar com microfone'}
+       </button>
+       <button onClick={togglePlayback} disabled={waitingForMidi || microphoneState === 'starting'}>
         {playing ? 'Pausar' : finished ? 'Repetir' : atMs === initialPosition ? 'Reproduzir guia' : 'Retomar'}
        </button>
        <button onClick={restart}>Reiniciar</button>
-       <button onClick={connect}>Ligar MIDI</button>
+       <button onClick={connect} disabled={microphoneState !== 'off'}>Usar MIDI</button>
        <button aria-pressed={metronomeEnabled} onClick={toggleMetronome}>Metrónomo</button>
        <label className="tempo-control">
         Andamento
@@ -302,12 +379,22 @@ export function LessonPlayer() {
       </ul>
      </div>
      <div className="panel">
-      <p className="eyebrow">MIDI EM TEMPO REAL</p>
+      <p className="eyebrow">ENTRADA EM TEMPO REAL</p>
       <h3>Teclas reconhecidas</h3>
-      <div className="recognized">{active.length ? active.map(noteName).join(' · ') : 'Nenhuma tecla premida'}</div>
-      <p className="muted">Eventos captados nesta sessão: {eventCount}</p>
+      <div className="recognized">{active.length ? active.map(noteName).join(' · ') : 'Nenhuma nota detetada'}</div>
+      {microphoneState === 'off' && !microphoneResult &&
+       <p className="muted">Eventos MIDI captados nesta sessão: {eventCount}</p>}
       <p className="muted">Acorde atual {position.measure?.chord ?? '—'}</p>
       <p className="muted">Notas previstas neste ponto: {position.activeNotes.map(note => noteName(note.pitch)).join(', ') || '—'}</p>
+      {microphoneResult && <div className="results" role="status">
+       <h3>Análise pelo microfone</h3>
+       <ul>{microphoneResult.map(({ chord, heard, uncertain }) => (
+        <li key={chord}>{chord} · {heard.length ? heard.map(noteName).join(', ') : 'Sem notas-alvo confirmadas'}
+         {uncertain.length > 0 && ` · Por confirmar: ${uncertain.map(noteName).join(', ')}`}
+        </li>
+       ))}</ul>
+       <p className="muted">Se um acorde ficou por confirmar, repete-o com calma. O microfone pode falhar notas, sobretudo com pedal ou ruído.</p>
+      </div>}
       {result
        ? <div className="results" role="status">
           <h3>Resultado da tentativa</h3>
@@ -317,9 +404,9 @@ export function LessonPlayer() {
           </p>
           <small>{practice.bpm} BPM · {demoLesson.version} · Regra provisória do SPEC</small>
          </div>
-       : <p className="muted">{practice.range
+       : !microphoneResult && <p className="muted">{practice.range
           ? 'A repetição é um modo livre, sem pontuação.'
-          : 'A pontuação será calculada no fim da tentativa. Liga o teclado MIDI antes de iniciar para obter pontuação.'}</p>}
+          : microphoneState !== 'off' ? 'No fim, revê as notas que o microfone conseguiu reconhecer em cada acorde.' : 'Toca com o microfone para rever as notas detetadas, ou usa MIDI para obter pontuação.'}</p>}
      </div>
     </aside>
    </div>

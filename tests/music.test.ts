@@ -1,3 +1,4 @@
+import { observeMicrophoneFrame, summarizeMicrophone } from '../lib/microphone-feedback';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluateOnsets } from '../lib/music-engine';
@@ -132,4 +133,18 @@ test('a selected measure repeats on the original beat grid with matching note ID
  assert.deepEqual(metronomePulses(practice, afterSkippedCycles!).map(pulse => pulse.timestamp),
   [31_000, 33_000, 35_000, 37_000]);
  assert.throws(() => createPracticeTimeline(60, { first: 2, last: 1 }), RangeError);
+});
+
+test('microphone evidence groups simultaneous target notes in the correct measure', () => {
+ const evidence = new Map<number, number[]>();
+ observeMicrophoneFrame(evidence, timeline, -1, [50, 53, 57, 60]);
+ observeMicrophoneFrame(evidence, timeline, 100, [50, 53, 97]);
+ observeMicrophoneFrame(evidence, timeline, 200, [57, 60]);
+ observeMicrophoneFrame(evidence, timeline, 4_000, [43, 47, 50, 53]);
+ observeMicrophoneFrame(evidence, timeline, 12_000, [48, 52, 55, 59]);
+ assert.deepEqual(summarizeMicrophone(evidence, timeline), [
+  { chord: 'Dm7', heard: [50, 53], uncertain: [57, 60] },
+  { chord: 'G7', heard: [43, 47, 50, 53], uncertain: [] },
+  { chord: 'Cmaj7', heard: [], uncertain: [48, 52, 55, 59] },
+ ]);
 });
