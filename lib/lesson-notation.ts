@@ -14,7 +14,7 @@ export function writtenPitch(midi: number) {
 /** Export the original, whole-measure ii–V–I fixture using its canonical note IDs. */
 export function fixtureMusicXml() {
   const [beats, beatType] = demoLesson.timeSignature;
-  const attributes = `<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes><direction><sound tempo="${demoLesson.bpm}"/></direction>`;
+  const attributes = `<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes><direction><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${demoLesson.bpm}</per-minute></metronome></direction-type><sound tempo="${demoLesson.bpm}"/></direction>`;
 
   function voice(notes: TimelineNote[], staff: number) {
     return notes.map(({ id, pitch, durationBeats }, index) => {

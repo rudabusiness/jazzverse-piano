@@ -47,6 +47,8 @@ Em `/lesson`, a cadência original de demonstração tem três compassos a 60 BP
 
 **Piano acústico.** Em `/lesson`, escolhe **Tocar com microfone** e concede permissão no navegador. O reconhecimento é experimental e corre localmente com [PitchPlease 3.1.0 (MIT)](https://github.com/markusstrasser/pitchplease). O áudio do microfone não é guardado nem enviado a um servidor. No fim, vês a melhor deteção simultânea por acorde e as notas por confirmar. A pontuação de ritmo continua disponível com MIDI. Se usares o metrónomo com o microfone, usa auscultadores para evitar que os cliques entrem na captação.
 
+**Teclado virtual e livros.** Clica ou toca nas teclas para ouvir gravações do Yamaha C5 do Salamander Grand Piano (Alexander Holm, CC BY 3.0). Em **Livros**, abre um exercício `.musicxml` ou `.xml` de até 3 MB, ou abre o exemplo incluído. A partitura é renderizada localmente com OpenSheetMusicDisplay. Podes ouvir a posição marcada, avançar à mão, usar o teclado virtual ou seguir com o microfone. O exercício segue as alturas, sem avaliar o ritmo. A importação destina-se a partituras MusicXML; digitalizações e PDFs requerem conversão prévia e revisão das notas.
+
 A partitura incorporada desenha a cadência fixa diretamente desses eventos. O ficheiro MusicXML, disponível na vista Partitura e Híbrido, é gerado dos mesmos eventos e conserva os seus IDs. A importação de MusicXML externo e a sincronização com o vídeo do professor ficam para uma etapa posterior.
 
 Para verificar esta etapa, executa `npm install`, `npm run typecheck`, `npm test` e `npm run build`.

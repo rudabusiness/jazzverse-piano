@@ -6,6 +6,7 @@ import { demoLesson, noteName } from '@/lib/lesson';
 import { advanceLoop, captureOnset, createPracticeTimeline, evaluatePractice, measureRanges, positionAt, timeAt, timeline, type ClockSegment, type MeasureRange } from '@/lib/lesson-timeline';
 import { PracticeMetronome } from '@/lib/practice-metronome';
 import { observeMicrophoneFrame, summarizeMicrophone, type MicrophoneEvidence } from '@/lib/microphone-feedback';
+import { PianoSampler } from '@/lib/piano-sampler';
 import type { Evaluation, PlayedOnset } from '@/lib/music-engine';
 
 const microphonePrompt = 'Toca com o microfone ou usa um teclado MIDI.';
@@ -23,6 +24,7 @@ export function LessonPlayer() {
  const [playing, setPlaying] = useState(false);
  const [metronomeEnabled, setMetronomeEnabled] = useState(false);
  const [audioError, setAudioError] = useState('');
+ const pianoRef = useRef<PianoSampler | null>(null);
  const audioRef = useRef<AudioContext | null>(null);
  const metronomeRef = useRef<PracticeMetronome | null>(null);
  const [finished, setFinished] = useState(false);
@@ -111,6 +113,8 @@ export function LessonPlayer() {
 
  useEffect(() => () => {
   connectionGeneration.current += 1;
+  pianoRef.current?.close();
+  pianoRef.current = null;
   const microphone = microphoneRef.current;
   microphoneRef.current = null;
   microphone?.stop();
@@ -303,6 +307,12 @@ export function LessonPlayer() {
   }
  }
 
+ function playVirtualKey(pitch: number) {
+  const piano = pianoRef.current ??= new PianoSampler();
+  setAudioError('');
+  void piano.play([pitch]).catch(() => setAudioError('Não foi possível reproduzir o som do piano.'));
+ }
+
  const position = positionAt(atMs, practice);
  return (
   <main className="page">
@@ -331,7 +341,7 @@ export function LessonPlayer() {
        </div>
       </div>
       {view !== 'falling' && <PracticeScore progress={(practice.startBeat + Math.max(0, position.beat)) / demoLesson.durationBeats} activeNotes={position.activeNotes} />}
-      {view !== 'score' && <FallingNotes atMs={atMs} active={active} practice={practice} />}
+      {view !== 'score' && <FallingNotes atMs={atMs} active={active} practice={practice} onPlay={playVirtualKey} keyboardDisabled={microphoneState !== 'off'} />}
       <div className="player-controls">
        <button className="primary" onClick={playWithMicrophone} disabled={playing && microphoneState === 'off'}>
         {microphoneState === 'on' ? 'Parar microfone' : microphoneState === 'starting' ? 'Cancelar microfone' : 'Tocar com microfone'}
@@ -366,6 +376,7 @@ export function LessonPlayer() {
       </div>
       {audioError && <p className="midi-status" role="status">{audioError}</p>}
       <div className="midi-status" role="status">{status}</div>
+      <a className="audio-credit" href="/piano-samples/attribution.txt">Créditos do som de piano</a>
      </div>
     </div>
     <aside className="lesson-side">

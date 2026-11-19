@@ -2,18 +2,15 @@ import { noteName } from '@/lib/lesson';
 import { fixtureMusicXml, writtenPitch } from '@/lib/lesson-notation';
 import { timeline, type PracticeTimeline, type TimelineNote } from '@/lib/lesson-timeline';
 
-const keys = Array.from({ length: 30 }, (_, index) => 43 + index);
-const whiteKeys = keys.filter(pitch => !writtenPitch(pitch).alter);
-const laneWidth = 100 / whiteKeys.length;
+import { keyboardLayout, PianoKeys } from './piano-keys';
 
-function lane(pitch: number) {
-  const whiteIndex = whiteKeys.indexOf(pitch);
-  return whiteIndex >= 0
-    ? (whiteIndex + 0.5) * laneWidth
-    : (whiteKeys.indexOf(pitch - 1) + 1) * laneWidth;
-}
+const layout = keyboardLayout(43, 72);
+const { keys, white: whiteKeys, width: laneWidth, lane } = layout;
 
-export function FallingNotes({ atMs, active, practice }: { atMs: number; active: number[]; practice: PracticeTimeline }) {
+export function FallingNotes({ atMs, active, practice, onPlay, keyboardDisabled }: {
+  atMs: number; active: number[]; practice: PracticeTimeline;
+  onPlay: (pitch: number) => void; keyboardDisabled: boolean;
+}) {
   const horizonMs = 4 * practice.beatMs;
   const playedPitches = keys.filter(pitch => active.includes(pitch));
   return (
@@ -37,17 +34,7 @@ export function FallingNotes({ atMs, active, practice }: { atMs: number; active:
             style={{ left: `${lane(pitch)}%`, width: `${laneWidth * 0.45}%` }} />
         ))}
       </div>
-      <div className="keyboard" aria-label="Teclado de Sol 2 a Dó 5">
-        {whiteKeys.map(pitch => (
-          <div key={pitch} className={active.includes(pitch) ? 'white-key active' : 'white-key'} title={noteName(pitch)}>
-            <small>{pitch % 12 === 0 ? noteName(pitch) : ''}</small>
-          </div>
-        ))}
-        {keys.filter(pitch => writtenPitch(pitch).alter).map(pitch => (
-          <div key={pitch} className={active.includes(pitch) ? 'black-key active' : 'black-key'}
-            title={noteName(pitch)} style={{ left: `${lane(pitch)}%`, width: `${laneWidth * 0.61}%` }} />
-        ))}
-      </div>
+      <PianoKeys layout={layout} active={active} onPlay={onPlay} disabled={keyboardDisabled} />
       <p className="roll-heard"><strong>Detetadas</strong> {active.length ? [...active].sort((a, b) => a - b).map(noteName).join(' · ') : '—'}</p>
     </div>
   );

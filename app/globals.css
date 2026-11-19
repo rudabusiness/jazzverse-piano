@@ -94,3 +94,14 @@
 @media (max-width: 480px) {
   .fall-note-hand { display: none; }
 }
+
+.keyboard button { padding: 0; }
+.keyboard button:focus-visible { outline-offset: -3px; z-index: 2; }
+.audio-credit { display: inline-block; margin-top: 12px; font-size: 11px; color: var(--muted); text-decoration: underline; }
+.book-practice .player-controls:first-child { margin-top: 0; }
+.book-upload { display: grid; gap: 5px; font-size: 13px; min-width: 0; }
+.book-upload input { max-width: 100%; }
+.book-score { max-height: 55vh; overflow: auto; padding: 12px; border-radius: 10px; background: #ede9e1; color-scheme: light; }
+.book-keyboard { overflow-x: auto; }
+.book-keyboard .keyboard { min-width: calc(var(--white-keys) * 20px); }
+.book-target { color: var(--gold); }
