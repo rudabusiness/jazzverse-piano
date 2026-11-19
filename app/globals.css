@@ -47,3 +47,50 @@
 }
 .tempo-control select:focus-visible { outline: 3px solid #8fd8f1; outline-offset: 3px; }
 .player-controls button[aria-pressed=true] { background: #4b3e63; border-color: #876ab3; }
+
+.roll-guide {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.hand-key {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
+  border-radius: 4px;
+  color: #111726;
+}
+.hand-key.left { background: #66c2f0; }
+.hand-key.right { background: #a58cf2; }
+.fall-note-hand {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #111726;
+  font-size: 10px;
+  font-weight: 700;
+}
+.played-note {
+  position: absolute;
+  z-index: 1;
+  bottom: 0;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 4px 4px 0 0;
+  background: #fbdda4;
+  box-shadow: 0 0 8px #fbdda499;
+}
+.roll-heard {
+  margin: 8px 0 0;
+  color: #fbdda4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.roll-heard strong { color: #f8f6f2; margin-right: 5px; }
+@media (max-width: 480px) {
+  .fall-note-hand { display: none; }
+}

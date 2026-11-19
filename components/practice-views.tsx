@@ -15,16 +15,27 @@ function lane(pitch: number) {
 
 export function FallingNotes({ atMs, active, practice }: { atMs: number; active: number[]; practice: PracticeTimeline }) {
   const horizonMs = 4 * practice.beatMs;
+  const playedPitches = keys.filter(pitch => active.includes(pitch));
   return (
     <div className="roll">
+      <div className="roll-guide">
+        <span><b className="hand-key left">E</b> Esquerda</span>
+        <span><b className="hand-key right">D</b> Direita</span>
+      </div>
       <div className="falling-lanes" aria-hidden="true">
         {whiteKeys.map(pitch => <span key={pitch} className="lane-divider" style={{ left: `${lane(pitch) - laneWidth / 2}%` }} />)}
         {practice.notes.filter(note => note.endMs > atMs && note.atMs <= atMs + horizonMs).map(note => {
           const top = Math.max(0, 100 - 100 * (note.endMs - atMs) / horizonMs);
           const bottom = Math.min(100, 100 - 100 * (note.atMs - atMs) / horizonMs);
           return <span key={note.id} data-note-id={note.id} className={`fall-note ${note.hand}`}
-            style={{ left: `${lane(note.pitch)}%`, top: `${top}%`, height: `${bottom - top}%`, width: `${laneWidth * 0.58}%` }} />;
+            style={{ left: `${lane(note.pitch)}%`, top: `${top}%`, height: `${bottom - top}%`, width: `${laneWidth * 0.58}%` }}>
+            {bottom - top >= 14 && <span className="fall-note-hand">{note.hand === 'left' ? 'E' : 'D'}</span>}
+          </span>;
         })}
+        {playedPitches.map(pitch => (
+          <span key={pitch} className="played-note" data-pitch={pitch}
+            style={{ left: `${lane(pitch)}%`, width: `${laneWidth * 0.45}%` }} />
+        ))}
       </div>
       <div className="keyboard" aria-label="Teclado de Sol 2 a Dó 5">
         {whiteKeys.map(pitch => (
@@ -37,6 +48,7 @@ export function FallingNotes({ atMs, active, practice }: { atMs: number; active:
             title={noteName(pitch)} style={{ left: `${lane(pitch)}%`, width: `${laneWidth * 0.61}%` }} />
         ))}
       </div>
+      <p className="roll-heard"><strong>Detetadas</strong> {active.length ? [...active].sort((a, b) => a - b).map(noteName).join(' · ') : '—'}</p>
     </div>
   );
 }
