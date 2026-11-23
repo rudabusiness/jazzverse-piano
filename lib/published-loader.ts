@@ -19,6 +19,11 @@ export function loadPublished(source: string | null | undefined): LoadResult {
   if (!isObject(json)) return refuse('O manifesto tem de ser um objeto');
   if (json.reviewedByHand !== true) return refuse('Não foi revisto à mão (reviewedByHand !== true)');
   if (json.interactiveStatus !== 'ready') return refuse('interactiveStatus não é "ready"');
+  return validateShape(json);
+}
+
+/** Structural check shared with the read-only editor (which also opens the unreviewed draft). Does NOT check review status. */
+export function validateShape(json: Record<string, unknown>): LoadResult {
   if (!text(json.manifestId) || !text(json.lessonId) || !text(json.title)) return refuse('Faltam manifestId, lessonId ou title');
   const video = json.video;
   if (!isObject(video) || !text(video.url) || !finite(video.durationMs) || video.durationMs <= 0) return refuse('Vídeo inválido');

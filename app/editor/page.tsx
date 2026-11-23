@@ -1,0 +1,13 @@
+import Link from 'next/link';
+import { EditorView } from '@/components/editor-view';
+import { readEditorFile } from '@/lib/editor-file';
+
+export const dynamic = 'force-dynamic';
+
+export default async function EditorPage() {
+  const loaded = await readEditorFile();
+  return <div className="content"><header className="topbar"><Link href="/lesson">← Voltar à aula</Link><span className="pill">Editor · só leitura</span></header>
+    <main className="page">{loaded.ok
+      ? <EditorView manifest={loaded.file.manifest} kind={loaded.file.kind} fileName={loaded.file.fileName} />
+      : <p className="editor-banner editor-draft" role="alert">Não foi possível carregar o ficheiro: {loaded.reason}</p>}</main></div>;
+}

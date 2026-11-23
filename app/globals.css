@@ -105,3 +105,4 @@
 .book-keyboard { overflow-x: auto; }
 .book-keyboard .keyboard { min-width: calc(var(--white-keys) * 20px); }
 .book-target { color: var(--gold); }
+.editor{max-width:980px}.editor-banner{border-radius:12px;padding:14px 18px;margin-bottom:16px;border:1px solid}.editor-banner p{margin:6px 0 0;font-size:13px}.editor-draft{background:#2d2417;border-color:#a8782f;color:#f3d9a6}.editor-published{background:#14281f;border-color:#3e8a63;color:#bfe8d0}
