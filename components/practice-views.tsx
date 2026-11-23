@@ -2,10 +2,10 @@ import { noteName } from '@/lib/lesson';
 import { fixtureMusicXml, writtenPitch } from '@/lib/lesson-notation';
 import { timeline, type PracticeTimeline, type TimelineNote } from '@/lib/lesson-timeline';
 
-import { keyboardLayout, PianoKeys } from './piano-keys';
+import { useMemo } from 'react';
 
-const layout = keyboardLayout(43, 72);
-const { keys, white: whiteKeys, width: laneWidth, lane } = layout;
+import { keyboardRangeFor } from '@/lib/keyboard-range';
+import { keyboardLayout, PianoKeys } from './piano-keys';
 
 export type FallingTimeline = { beatMs: number; notes: readonly Pick<TimelineNote, 'id' | 'pitch' | 'hand' | 'atMs' | 'endMs'>[] };
 
@@ -13,6 +13,11 @@ export function FallingNotes({ atMs, active, practice, onPlay, keyboardDisabled 
   atMs: number; active: number[]; practice: FallingTimeline;
   onPlay: (pitch: number) => void; keyboardDisabled: boolean;
 }) {
+  const layout = useMemo(() => {
+    const { first, last } = keyboardRangeFor(practice.notes);
+    return keyboardLayout(first, last);
+  }, [practice.notes]);
+  const { keys, white: whiteKeys, width: laneWidth, lane } = layout;
   const horizonMs = 4 * practice.beatMs;
   const playedPitches = keys.filter(pitch => active.includes(pitch));
   return (
@@ -26,7 +31,7 @@ export function FallingNotes({ atMs, active, practice, onPlay, keyboardDisabled 
         {practice.notes.filter(note => note.endMs > atMs && note.atMs <= atMs + horizonMs).map(note => {
           const top = Math.max(0, 100 - 100 * (note.endMs - atMs) / horizonMs);
           const bottom = Math.min(100, 100 - 100 * (note.atMs - atMs) / horizonMs);
-          return <span key={note.id} data-note-id={note.id} className={`fall-note ${note.hand}`}
+          return <span key={note.id} data-note-id={note.id} data-pitch={note.pitch} className={`fall-note ${note.hand}`}
             style={{ left: `${lane(note.pitch)}%`, top: `${top}%`, height: `${bottom - top}%`, width: `${laneWidth * 0.58}%` }}>
             {bottom - top >= 14 && <span className="fall-note-hand">{note.hand === 'left' ? 'E' : 'D'}</span>}
           </span>;
