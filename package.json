@@ -1,0 +1,33 @@
+{
+  "name": "jazzverse-piano",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/music.test.ts tests/video-sync.test.ts tests/midi-import.test.ts tests/published-loader.test.ts tests/editor-file.test.ts tests/note-editor.test.ts tests/anchor-editor.test.ts tests/ab-loop.test.ts tests/published-practice.test.ts tests/keyboard-range.test.ts tests/ai-original.test.ts",
+    "predev": "node scripts/prepare-pitchplease.mjs",
+    "prebuild": "node scripts/prepare-pitchplease.mjs"
+  },
+  "dependencies": {
+    "@markusstrasser/pitchplease": "3.1.0",
+    "@tonejs/midi": "2.0.28",
+    "lucide-react": "^0.468.0",
+    "next": "15.5.29",
+    "opensheetmusicdisplay": "2.3.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "overrides": {
+    "postcss": "8.5.33"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

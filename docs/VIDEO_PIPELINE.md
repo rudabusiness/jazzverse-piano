@@ -42,3 +42,89 @@ Existing videos are valuable assets. But speech transcription is not the same as
 ## First lesson recommendation
 
 Take a 4–8 minute original video about ii–V–I in C, plus a manually verified 4–8 bar pattern (Dm7 / G7 / Cmaj7) in source MIDI and MusicXML. Mark 3 chapters, 2 anchor points minimum, two practice tasks (play shell voicings + loop guide-tone resolutions) and 10 coach Q&A assertions. Compare edited timestamps and playback to the instructor demonstration on hardware.
+
+## Local clip extraction (v1 — `bebop-blues`)
+
+Working folder `pipeline-work/` is git-ignored. Tools live in `.venv/` (also git-ignored). Used yt-dlp 2026.10.26.
+
+```bash
+mkdir -p pipeline-work public/lessons/bebop-blues
+
+# 1. Download only 3:09–4:32, cut on keyframes, up to 720p mp4
+yt-dlp --download-sections "*3:09-4:32" --force-keyframes-at-cuts \
+  -f "bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]/b[height<=720]" \
+  --merge-output-format mp4 \
+  -o "pipeline-work/raw.%(ext)s" \
+  "https://www.youtube.com/watch?v=p-hZGY7wNE8"
+
+# 2. Remux without re-encoding; faststart puts the moov atom first for streaming/seeking
+ffmpeg -i pipeline-work/raw.mp4 -c copy -movflags +faststart public/lessons/bebop-blues/clip.mp4
+
+# 3. Verify: duration must be 82–84 s (expected ≈ 83.0 s), h264 + aac
+ffprobe -v error -show_entries format=duration:stream=codec_name,width,height \
+  -of default=nw=1 public/lessons/bebop-blues/clip.mp4
+```
+
+The player uses it as `<video controls playsInline preload="metadata" src="/lessons/bebop-blues/clip.mp4">` (no YouTube embed). See `docs/CONTENT_RIGHTS.md` before publishing any clip.
+
+## AI draft transcription (basic-pitch → `draft.json`)
+
+The raw transcription is only a **draft**: basic-pitch is not reliable on dense jazz polyphony, so every note must be reviewed by hand in the editor before anything is published. Never ship the raw output as `published.json`.
+
+Environment (Python 3.10 venv in `.venv/`, git-ignored). These pins were needed to make basic-pitch 0.4.0 run with the TFLite backend:
+
+```bash
+python3.10 -m venv .venv
+.venv/bin/pip install basic-pitch==0.4.0 numpy==1.26.4 setuptools==69.5.1 tflite-runtime==2.14.0
+```
+
+Commands (run once; the raw `.mid` is kept in `content/bebop-blues/source/basic-pitch-raw.mid`, times in seconds from the clip start):
+
+```bash
+# 1. Mono 22.05 kHz audio from the clip
+ffmpeg -i public/lessons/bebop-blues/clip.mp4 -vn -ac 1 -ar 22050 pipeline-work/clip-audio.wav
+
+# 2. Transcribe
+.venv/bin/basic-pitch pipeline-work/basic-pitch pipeline-work/clip-audio.wav --save-note-events
+```
+
+Import into the manifest format (needs `@tonejs/midi` 2.0.28; converts seconds → beats with the manifest's `syncAnchors`, hand = left if MIDI < 60 else right):
+
+```bash
+npx tsx scripts/import-draft.ts
+```
+
+This writes `content/bebop-blues/draft.json` (`interactiveStatus: "draft"`, `reviewedByHand: false`, `source: {tool: "basic-pitch", version: "0.4.0"}`). Re-run it after the anchors change. `/lesson` does not read the draft.
+
+## End-to-end v1 pipeline (`bebop-blues`)
+
+```
+yt-dlp → ffmpeg (clip.mp4, faststart) → wav → basic-pitch 0.4.0 → scripts/import-draft.ts
+       → /editor (notes, anchors, "Revisto à mão", Publicar) → content/bebop-blues/published.json → /lesson
+```
+
+| # | Step | Where | Output |
+|---|------|-------|--------|
+| 1 | `yt-dlp --download-sections "*3:09-4:32" --force-keyframes-at-cuts …` | `pipeline-work/` (git-ignored) | `raw.mp4` |
+| 2 | `ffmpeg -i raw.mp4 -c copy -movflags +faststart …` | — | `public/lessons/bebop-blues/clip.mp4` (≈ 83 s, h264 + aac) |
+| 3 | `ffmpeg -i clip.mp4 -vn -ac 1 -ar 22050 …` | — | `pipeline-work/clip-audio.wav` |
+| 4 | `.venv/bin/basic-pitch … --save-note-events` | `.venv` (Python 3.10; basic-pitch 0.4.0, numpy 1.26.4, setuptools 69.5.1, tflite-runtime 2.14.0) | raw `.mid` → `content/bebop-blues/source/basic-pitch-raw.mid` |
+| 5 | `npx tsx scripts/import-draft.ts` | — | `content/bebop-blues/draft.json` (draft, not reviewed) |
+| 6 | `npm run dev` → `/editor` | browser | fix notes (move / delete / add), set ≥ 2 sync anchors, tick **Revisto à mão**, **Publicar** |
+| 7 | Commit `content/bebop-blues/published.json` | git | the only file `/lesson` accepts |
+| 8 | `/lesson` | browser | **Ver**: falling notes follow `video.currentTime` (A–B loop). **Prática**: the same published notes become the MIDI exercise |
+
+Rules:
+
+- The raw AI transcription is never the lesson. `published.json` is only valid with `reviewedByHand: true`, `interactiveStatus: "ready"`, ≥ 2 strictly increasing anchors and valid notes (`lib/published-loader.ts`). Anything else → `/lesson` shows the video and "Notas ainda em revisão"; no notes, no grading.
+- Publishing from `/editor` writes `published.json` and keeps `draft.json`. In production the file must be committed (the editor's write route is dev-only).
+- Check `docs/CONTENT_RIGHTS.md` before committing a clip or publishing.
+
+### Practice mode on the published notes
+
+`lib/published-practice.ts` (pure, tested in `tests/published-practice.test.ts`) turns the validated manifest into an exercise for the existing engine (`createPracticeTimeline`, `evaluatePractice`/`evaluateOnsets`):
+
+- **Tempo**: the average of the sync anchors, `60000 · Δbeat / Δms` between the first and last anchor. Practice tempos are 50 / 75 / 100 / 120 % of it. Rubato in the video is flattened to this straight grid.
+- **Notes**: beats are kept (shifted by whole 4-beat measures only if some start before beat 0); ids are the manifest ids, or a stable `p<index>-<midi>-<startBeat>`, and duplicates are made unique.
+- **Grading**: Web MIDI only, ±150 ms window, local. No chord labels exist in the manifest, so no "allowed tension" is credited: only the listed notes count. Without a connected MIDI keyboard no note is captured and no score is produced.
+- **Out of scope in v1**: microphone input, score/hybrid view and measure repeat on published notes (the on-screen keyboard shows C♯2–C5 only, so notes outside that range are graded but not drawn).

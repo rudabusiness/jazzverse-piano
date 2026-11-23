@@ -31,7 +31,7 @@ O **JazzVerse Piano** une a gamificação em tempo real, o ensino com professore
 
 - [x] **Fase 0 — Planejamento & Especificação Técnica**: `SPEC.md` oficial homologado.
 - [ ] **Fase 1 — Vertical Slice (Próximo Passo)**:
-  - Base Next.js 14 + React + TypeScript + Tailwind CSS.
+  - Base Next.js 15 + React + TypeScript, CSS próprio (`app/globals.css`), sem Tailwind.
   - Tela de Descoberta estilo Netflix com lições.
   - Player Interativo com Web MIDI funcional e 1 lição jogável (*ii–V–I* em Jazz).
   - Mascote flutuante com alternância de visualização.
@@ -41,10 +41,36 @@ O **JazzVerse Piano** une a gamificação em tempo real, o ensino com professore
 
 ---
 
+## Demo v1
+
+```bash
+npm ci
+npm run dev          # http://localhost:3000
+```
+
+- `/lesson` — clip de piano jazz com notas a cair sincronizadas com o vídeo (modo **Ver**, com loop A–B) e **Prática** com teclado MIDI sobre as notas publicadas (±150 ms, 50/75/100/120 % do andamento). Sem `content/bebop-blues/published.json` válido mostra o vídeo e "Notas ainda em revisão".
+- `/editor` — corrige o rascunho da IA (notas e âncoras), marca "Revisto à mão" e publica.
+- Pipeline completo (yt-dlp → ffmpeg → basic-pitch → editor → publicar): [docs/VIDEO_PIPELINE.md](./docs/VIDEO_PIPELINE.md).
+- Verificação: `npm run typecheck && npm test && npm run build`.
+
+## Prática ii–V–I (motor de demonstração, histórico)
+
+> Em v1 o `/lesson` já não usa a cadência ii–V–I nem o microfone: a prática corre sobre as notas publicadas. O texto abaixo descreve o motor original, que continua coberto pelos testes.
+
+Em `/lesson`, a cadência original de demonstração tem três compassos a 60 BPM. Notas descendentes, partitura e avaliação local usam os mesmos 12 eventos de `lib/lesson-timeline.ts`. O transporte tem um compasso de preparação visual, pausa e reinício. O botão Metrónomo ativa os cliques na preparação e durante a prática, com o primeiro tempo de cada compasso acentuado. Na grelha, E e D indicam a mão sugerida e os marcadores dourados junto às teclas mostram as notas que o microfone ou o MIDI detetam. A troca de vista preserva a tentativa. Podes praticar a 30, 45, 60 ou 72 BPM. Mudar o andamento reinicia a tentativa e mantém a tolerância MIDI de ±150 ms. Em Repetição, escolhe um compasso ou um trecho contínuo. O trecho volta ao início automaticamente após a primeira contagem preparatória. A repetição é prática livre, sem pontuação. Liga um teclado Web MIDI antes de começar uma tentativa completa para obter pontuação.
+
+**Piano acústico.** Em `/lesson`, escolhe **Tocar com microfone** e concede permissão no navegador. O reconhecimento é experimental e corre localmente com [PitchPlease 3.1.0 (MIT)](https://github.com/markusstrasser/pitchplease). O áudio do microfone não é guardado nem enviado a um servidor. No fim, vês a melhor deteção simultânea por acorde e as notas por confirmar. A pontuação de ritmo continua disponível com MIDI. Se usares o metrónomo com o microfone, usa auscultadores para evitar que os cliques entrem na captação.
+
+**Teclado virtual e livros.** Clica ou toca nas teclas para ouvir gravações do Yamaha C5 do Salamander Grand Piano (Alexander Holm, CC BY 3.0). Em **Livros**, abre um exercício `.musicxml` ou `.xml` de até 3 MB, ou abre o exemplo incluído. A partitura é renderizada localmente com OpenSheetMusicDisplay. Podes ouvir a posição marcada, avançar à mão, usar o teclado virtual ou seguir com o microfone. O exercício segue as alturas, sem avaliar o ritmo. A importação destina-se a partituras MusicXML; digitalizações e PDFs requerem conversão prévia e revisão das notas.
+
+A partitura incorporada desenha a cadência fixa diretamente desses eventos. O ficheiro MusicXML, disponível na vista Partitura e Híbrido, é gerado dos mesmos eventos e conserva os seus IDs. A importação de MusicXML externo e a sincronização com o vídeo do professor ficam para uma etapa posterior.
+
+Para verificar esta etapa, executa `npm ci`, `npm run typecheck`, `npm test` e `npm run build`.
+
 ## 🛠️ Stack Tecnológica
 
-- **Frontend:** Next.js (App Router), React, TypeScript, Tailwind CSS, Lucide Icons.
-- **Música & Áudio:** Web MIDI API determinística (local, sem latência de rede), MusicXML / VexFlow.
+- **Frontend:** Next.js 15 (App Router), React, TypeScript, CSS próprio (`app/globals.css`), sem Tailwind, Lucide Icons.
+- **Música & Áudio:** Web MIDI API determinística (local, sem latência de rede), MusicXML / OpenSheetMusicDisplay.
 - **Orquestração de Agentes:** OpenMausBot (Agent Architect team) + OpenAI Codex / Antigravity.
 
 ---

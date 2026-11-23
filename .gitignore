@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+.env*
+!.env.example
+*.tsbuildinfo
+.DS_Store
+
+/public/pitchplease/
+
+# Fábrica
+.vercel
+.venv/
+/pipeline-work/

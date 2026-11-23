@@ -1,0 +1,19 @@
+{
+  "_fixture": "FIXTURE DE TESTE — não é conteúdo publicado nem transcrição real",
+  "schemaVersion": "1.0.0",
+  "manifestId": "fixture-anchors",
+  "lessonId": "fixture-lesson",
+  "title": "FIXTURE de teste (notas nas âncoras)",
+  "interactiveStatus": "ready",
+  "reviewedByHand": true,
+  "video": { "url": "/lessons/bebop-blues/clip.mp4", "durationMs": 83000 },
+  "syncAnchors": [
+    { "mediaTimeMs": 2000, "beat": 4 },
+    { "mediaTimeMs": 14000, "beat": 28 }
+  ],
+  "notes": [
+    { "id": "a1", "midi": 48, "startBeat": 4, "durationBeats": 1, "hand": "left" },
+    { "id": "a2", "midi": 64, "startBeat": 16, "durationBeats": 0.5, "hand": "right" },
+    { "id": "a3", "midi": 67, "startBeat": 28, "durationBeats": 1, "hand": "right" }
+  ]
+}
