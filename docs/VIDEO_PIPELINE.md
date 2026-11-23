@@ -66,3 +66,32 @@ ffprobe -v error -show_entries format=duration:stream=codec_name,width,height \
 ```
 
 The player uses it as `<video controls playsInline preload="metadata" src="/lessons/bebop-blues/clip.mp4">` (no YouTube embed). See `docs/CONTENT_RIGHTS.md` before publishing any clip.
+
+## AI draft transcription (basic-pitch → `draft.json`)
+
+The raw transcription is only a **draft**: basic-pitch is not reliable on dense jazz polyphony, so every note must be reviewed by hand in the editor before anything is published. Never ship the raw output as `published.json`.
+
+Environment (Python 3.10 venv in `.venv/`, git-ignored). These pins were needed to make basic-pitch 0.4.0 run with the TFLite backend:
+
+```bash
+python3.10 -m venv .venv
+.venv/bin/pip install basic-pitch==0.4.0 numpy==1.26.4 setuptools==69.5.1 tflite-runtime==2.14.0
+```
+
+Commands (run once; the raw `.mid` is kept in `content/bebop-blues/source/basic-pitch-raw.mid`, times in seconds from the clip start):
+
+```bash
+# 1. Mono 22.05 kHz audio from the clip
+ffmpeg -i public/lessons/bebop-blues/clip.mp4 -vn -ac 1 -ar 22050 pipeline-work/clip-audio.wav
+
+# 2. Transcribe
+.venv/bin/basic-pitch pipeline-work/basic-pitch pipeline-work/clip-audio.wav --save-note-events
+```
+
+Import into the manifest format (needs `@tonejs/midi` 2.0.28; converts seconds → beats with the manifest's `syncAnchors`, hand = left if MIDI < 60 else right):
+
+```bash
+npx tsx scripts/import-draft.ts
+```
+
+This writes `content/bebop-blues/draft.json` (`interactiveStatus: "draft"`, `reviewedByHand: false`, `source: {tool: "basic-pitch", version: "0.4.0"}`). Re-run it after the anchors change. `/lesson` does not read the draft.

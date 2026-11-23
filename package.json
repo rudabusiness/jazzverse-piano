@@ -7,12 +7,13 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/music.test.ts tests/video-sync.test.ts",
+    "test": "tsx --test tests/music.test.ts tests/video-sync.test.ts tests/midi-import.test.ts",
     "predev": "node scripts/prepare-pitchplease.mjs",
     "prebuild": "node scripts/prepare-pitchplease.mjs"
   },
   "dependencies": {
     "@markusstrasser/pitchplease": "3.1.0",
+    "@tonejs/midi": "2.0.28",
     "lucide-react": "^0.468.0",
     "next": "15.5.29",
     "opensheetmusicdisplay": "2.3.1",
