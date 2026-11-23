@@ -3,7 +3,7 @@ import { create, type Detector } from '@markusstrasser/pitchplease';
 import { useEffect, useRef, useState } from 'react';
 import { FallingNotes, PracticeScore } from './practice-views';
 import { WatchView } from './watch-view';
-import { bebopBluesManifest } from '@/lib/lesson-manifest';
+import { bebopBluesManifest, type LessonManifest } from '@/lib/lesson-manifest';
 import { demoLesson, noteName } from '@/lib/lesson';
 import { advanceLoop, captureOnset, createPracticeTimeline, evaluatePractice, measureRanges, positionAt, timeAt, timeline, type ClockSegment, type MeasureRange } from '@/lib/lesson-timeline';
 import { PracticeMetronome } from '@/lib/practice-metronome';
@@ -14,7 +14,9 @@ import type { Evaluation, PlayedOnset } from '@/lib/music-engine';
 const microphonePrompt = 'Toca com o microfone ou usa um teclado MIDI.';
 const tempos = [50, 75, 100, 120].map(percent => demoLesson.bpm * percent / 100);
 
-export function LessonPlayer() {
+/** `published` is the validated published manifest, or null while the notes are still under review (then no notes fall). */
+export function LessonPlayer({ published }: { published: LessonManifest | null }) {
+ const clip = published ?? bebopBluesManifest;
  const [practice, setPractice] = useState(timeline);
  const practiceRef = useRef(timeline);
  const initialPosition = -practice.countInMs;
@@ -323,7 +325,7 @@ export function LessonPlayer() {
    <div className="breadcrumb">CURSO / JAZZ / LIÇÃO 01</div>
    <div className="lesson-heading">
     <div>
-     <h1>{mode === 'watch' ? bebopBluesManifest.title : 'Primeiros voicings: ii–V–I'}</h1>
+     <h1>{mode === 'watch' ? clip.title : 'Primeiros voicings: ii–V–I'}</h1>
      <p className="muted">{mode === 'watch' ? 'Vê o vídeo e acompanha as notas a cair.' : 'Uma introdução prática à harmonia jazzística em Dó maior.'}</p>
     </div>
     <div className="switcher" role="group" aria-label="Modo">
@@ -333,12 +335,14 @@ export function LessonPlayer() {
    </div>
    <div className="lesson-grid">
     <div className="lesson-main">
-     <video ref={videoRef} className="lesson-video" controls playsInline preload="metadata" src={bebopBluesManifest.video.url}>
+     <video ref={videoRef} className="lesson-video" controls playsInline preload="metadata" src={clip.video.url}>
       O teu navegador não suporta vídeo HTML5.
      </video>
      {mode === 'watch' && <div className="player-panel">
       <div className="section-head"><h2>Notas a cair</h2></div>
-      <WatchView videoRef={videoRef} onPlay={playVirtualKey} />
+      {published
+       ? <WatchView manifest={published} videoRef={videoRef} onPlay={playVirtualKey} />
+       : <p className="muted" role="status">Notas ainda em revisão.</p>}
       {audioError && <p className="midi-status" role="status">{audioError}</p>}
      </div>}
      {mode === 'practice' && <div className="player-panel">
@@ -392,8 +396,8 @@ export function LessonPlayer() {
     <aside className="lesson-side">
      {mode === 'watch' ? <div className="panel">
       <p className="eyebrow">MODO VER</p>
-      <h3>{bebopBluesManifest.title}</h3>
-      <p className="muted">As notas seguem o relógio do vídeo: play, pausa e seek movem-nas.</p>
+      <h3>{clip.title}</h3>
+      <p className="muted">{published ? 'As notas seguem o relógio do vídeo: play, pausa e seek movem-nas.' : 'Notas ainda em revisão.'}</p>
      </div> : <>
      <div className="panel">
       <p className="eyebrow">AULA 01</p>

@@ -1,0 +1,17 @@
+{
+  "_fixture": "FIXTURE DE TESTE — rascunho (draft), deve ser recusado",
+  "schemaVersion": "1.0.0",
+  "manifestId": "fixture-draft",
+  "lessonId": "fixture-lesson",
+  "title": "FIXTURE de teste (rascunho)",
+  "interactiveStatus": "draft",
+  "reviewedByHand": false,
+  "video": { "url": "/lessons/bebop-blues/clip.mp4", "durationMs": 83000 },
+  "syncAnchors": [
+    { "mediaTimeMs": 0, "beat": 0 },
+    { "mediaTimeMs": 10000, "beat": 20 }
+  ],
+  "notes": [
+    { "id": "f1", "midi": 48, "startBeat": 0, "durationBeats": 1, "hand": "left" }
+  ]
+}

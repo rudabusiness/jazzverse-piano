@@ -1,0 +1,16 @@
+{
+  "_fixture": "FIXTURE DE TESTE — só 1 âncora, deve ser recusado",
+  "schemaVersion": "1.0.0",
+  "manifestId": "fixture-one-anchor",
+  "lessonId": "fixture-lesson",
+  "title": "FIXTURE de teste (1 âncora)",
+  "interactiveStatus": "ready",
+  "reviewedByHand": true,
+  "video": { "url": "/lessons/bebop-blues/clip.mp4", "durationMs": 83000 },
+  "syncAnchors": [
+    { "mediaTimeMs": 0, "beat": 0 }
+  ],
+  "notes": [
+    { "id": "f1", "midi": 48, "startBeat": 0, "durationBeats": 1, "hand": "left" }
+  ]
+}

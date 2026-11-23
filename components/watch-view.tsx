@@ -1,17 +1,16 @@
 'use client';
 import { useEffect, useMemo, useState, type RefObject } from 'react';
 import { FallingNotes } from './practice-views';
-import { bebopBluesManifest, watchTimeline } from '@/lib/lesson-manifest';
+import { watchTimeline, type LessonManifest } from '@/lib/lesson-manifest';
 import { beatAtTime } from '@/lib/video-sync';
 
-const manifest = bebopBluesManifest;
 const settled = ['pause', 'ended', 'waiting'] as const;
 const passive = ['seeking', 'seeked', 'timeupdate', 'loadedmetadata'] as const;
 
 /** Falling notes clocked by the <video>: rAF while playing, plus pause/seeked/timeupdate etc. */
-export function WatchView({ videoRef, onPlay }: { videoRef: RefObject<HTMLVideoElement | null>; onPlay: (pitch: number) => void }) {
+export function WatchView({ manifest, videoRef, onPlay }: { manifest: LessonManifest; videoRef: RefObject<HTMLVideoElement | null>; onPlay: (pitch: number) => void }) {
   const [beat, setBeat] = useState(() => beatAtTime(manifest.syncAnchors, 0));
-  const practice = useMemo(() => watchTimeline(manifest.notes), []);
+  const practice = useMemo(() => watchTimeline(manifest.notes), [manifest]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -34,10 +33,9 @@ export function WatchView({ videoRef, onPlay }: { videoRef: RefObject<HTMLVideoE
       settled.forEach(name => video.removeEventListener(name, stop));
       passive.forEach(name => video.removeEventListener(name, refresh));
     };
-  }, [videoRef]);
+  }, [videoRef, manifest]);
 
   return <>
-    {manifest.notes.length === 0 && <p className="muted" role="status">Notas ainda em revisão.</p>}
     <FallingNotes atMs={beat * practice.beatMs} active={[]} practice={practice} onPlay={onPlay} keyboardDisabled={false} />
   </>;
 }
