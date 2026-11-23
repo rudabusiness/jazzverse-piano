@@ -3,6 +3,7 @@ import { create, type Detector } from '@markusstrasser/pitchplease';
 import { useEffect, useRef, useState } from 'react';
 import { FallingNotes, PracticeScore } from './practice-views';
 import { WatchView } from './watch-view';
+import { AbLoopControls } from './ab-loop-controls';
 import { bebopBluesManifest, type LessonManifest } from '@/lib/lesson-manifest';
 import { demoLesson, noteName } from '@/lib/lesson';
 import { advanceLoop, captureOnset, createPracticeTimeline, evaluatePractice, measureRanges, positionAt, timeAt, timeline, type ClockSegment, type MeasureRange } from '@/lib/lesson-timeline';
@@ -340,6 +341,7 @@ export function LessonPlayer({ published }: { published: LessonManifest | null }
      </video>
      {mode === 'watch' && <div className="player-panel">
       <div className="section-head"><h2>Notas a cair</h2></div>
+      <AbLoopControls videoRef={videoRef} />
       {published
        ? <WatchView manifest={published} videoRef={videoRef} onPlay={playVirtualKey} />
        : <p className="muted" role="status">Notas ainda em revisão.</p>}

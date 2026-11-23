@@ -119,3 +119,4 @@
 .roll-cursor{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#ff6b6b;z-index:4;pointer-events:none}
 
 .anchor-list{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}.anchor-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px}.anchor-row input,.anchor-panel input[type=number]{width:96px}
+.ab-loop{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0;font-size:13px}.ab-time{font-variant-numeric:tabular-nums;color:var(--gold)}.ab-toggle{display:inline-flex;align-items:center;gap:6px}
