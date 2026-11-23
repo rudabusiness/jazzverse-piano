@@ -326,11 +326,9 @@ export function LessonPlayer() {
    </div>
    <div className="lesson-grid">
     <div className="lesson-main">
-     <div className="video-placeholder">
-      <div className="video-badge">VÍDEO AINDA NÃO DISPONÍVEL</div>
-      <div className="video-symbol">▶</div>
-      <p>O teu vídeo gravado aparecerá aqui quando for enviado e sincronizado.</p>
-     </div>
+     <video className="lesson-video" controls playsInline preload="metadata" src="/lessons/bebop-blues/clip.mp4">
+      O teu navegador não suporta vídeo HTML5.
+     </video>
      <div className="player-panel">
       <div className="section-head">
        <h2>Prática interativa</h2>

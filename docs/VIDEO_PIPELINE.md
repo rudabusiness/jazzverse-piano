@@ -42,3 +42,27 @@ Existing videos are valuable assets. But speech transcription is not the same as
 ## First lesson recommendation
 
 Take a 4–8 minute original video about ii–V–I in C, plus a manually verified 4–8 bar pattern (Dm7 / G7 / Cmaj7) in source MIDI and MusicXML. Mark 3 chapters, 2 anchor points minimum, two practice tasks (play shell voicings + loop guide-tone resolutions) and 10 coach Q&A assertions. Compare edited timestamps and playback to the instructor demonstration on hardware.
+
+## Local clip extraction (v1 — `bebop-blues`)
+
+Working folder `pipeline-work/` is git-ignored. Tools live in `.venv/` (also git-ignored). Used yt-dlp 2026.10.26.
+
+```bash
+mkdir -p pipeline-work public/lessons/bebop-blues
+
+# 1. Download only 3:09–4:32, cut on keyframes, up to 720p mp4
+yt-dlp --download-sections "*3:09-4:32" --force-keyframes-at-cuts \
+  -f "bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]/b[height<=720]" \
+  --merge-output-format mp4 \
+  -o "pipeline-work/raw.%(ext)s" \
+  "https://www.youtube.com/watch?v=p-hZGY7wNE8"
+
+# 2. Remux without re-encoding; faststart puts the moov atom first for streaming/seeking
+ffmpeg -i pipeline-work/raw.mp4 -c copy -movflags +faststart public/lessons/bebop-blues/clip.mp4
+
+# 3. Verify: duration must be 82–84 s (expected ≈ 83.0 s), h264 + aac
+ffprobe -v error -show_entries format=duration:stream=codec_name,width,height \
+  -of default=nw=1 public/lessons/bebop-blues/clip.mp4
+```
+
+The player uses it as `<video controls playsInline preload="metadata" src="/lessons/bebop-blues/clip.mp4">` (no YouTube embed). See `docs/CONTENT_RIGHTS.md` before publishing any clip.
