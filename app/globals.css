@@ -106,3 +106,14 @@
 .book-keyboard .keyboard { min-width: calc(var(--white-keys) * 20px); }
 .book-target { color: var(--gold); }
 .editor{max-width:980px}.editor-banner{border-radius:12px;padding:14px 18px;margin-bottom:16px;border:1px solid}.editor-banner p{margin:6px 0 0;font-size:13px}.editor-draft{background:#2d2417;border-color:#a8782f;color:#f3d9a6}.editor-published{background:#14281f;border-color:#3e8a63;color:#bfe8d0}
+.editor-tools{margin-top:0}.editor-check{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#ccc3d1}.editor-ok{color:#bfe8d0;font-size:13px}.editor-err{color:#f3b0a6;font-size:13px}
+.note-roll{position:relative;overflow:auto;max-height:380px;border:1px solid #363244;border-radius:10px;background:#0d1120;margin-top:12px;outline-offset:2px}
+.roll-content{position:relative}
+.roll-ruler{position:sticky;top:0;z-index:3;background:#1a2033;border-bottom:1px solid #363244;cursor:pointer;width:100%}
+.roll-ruler span{position:absolute;top:0;padding:4px 0 0 4px;font-size:10px;color:var(--muted);border-left:1px solid #4a4d63;height:100%;user-select:none}
+.roll-surface{position:absolute;left:0;right:0;cursor:crosshair;background-image:linear-gradient(#ffffff0d 1px,transparent 1px),linear-gradient(90deg,#ffffff14 1px,transparent 1px)}
+.roll-note{position:absolute;border-radius:2px;cursor:grab;touch-action:none;min-width:4px}
+.roll-note.left{background:#66c2f0}.roll-note.right{background:#a58cf2}
+.roll-note.selected{outline:2px solid var(--gold);outline-offset:1px;z-index:2}
+.roll-note:active{cursor:grabbing}
+.roll-cursor{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#ff6b6b;z-index:4;pointer-events:none}
