@@ -7,8 +7,10 @@ import { keyboardLayout, PianoKeys } from './piano-keys';
 const layout = keyboardLayout(43, 72);
 const { keys, white: whiteKeys, width: laneWidth, lane } = layout;
 
+export type FallingTimeline = { beatMs: number; notes: readonly Pick<TimelineNote, 'id' | 'pitch' | 'hand' | 'atMs' | 'endMs'>[] };
+
 export function FallingNotes({ atMs, active, practice, onPlay, keyboardDisabled }: {
-  atMs: number; active: number[]; practice: PracticeTimeline;
+  atMs: number; active: number[]; practice: FallingTimeline;
   onPlay: (pitch: number) => void; keyboardDisabled: boolean;
 }) {
   const horizonMs = 4 * practice.beatMs;

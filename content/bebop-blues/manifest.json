@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "manifestId": "manifest-bebop-blues-v1",
+  "lessonId": "lesson-bebop-blues-clip",
+  "title": "Bebop Blues — trecho 3:09–4:32",
+  "genre": "jazz",
+  "interactiveStatus": "draft",
+  "sourceVideoId": "p-hZGY7wNE8",
+  "video": {"url": "/lessons/bebop-blues/clip.mp4", "durationMs": 83000},
+  "timeSignature": {"numerator": 4, "denominator": 4},
+  "tempoMap": [{"beat": 0, "bpm": 120}],
+  "syncAnchors": [
+    {"mediaTimeMs": 0, "beat": 0},
+    {"mediaTimeMs": 83000, "beat": 166}
+  ],
+  "syncNote": "PROVISÓRIO: âncoras de arranque a 120 BPM, sem medição. Serão substituídas no editor (tarefa 8).",
+  "notes": []
+}

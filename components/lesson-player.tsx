@@ -2,6 +2,8 @@
 import { create, type Detector } from '@markusstrasser/pitchplease';
 import { useEffect, useRef, useState } from 'react';
 import { FallingNotes, PracticeScore } from './practice-views';
+import { WatchView } from './watch-view';
+import { bebopBluesManifest } from '@/lib/lesson-manifest';
 import { demoLesson, noteName } from '@/lib/lesson';
 import { advanceLoop, captureOnset, createPracticeTimeline, evaluatePractice, measureRanges, positionAt, timeAt, timeline, type ClockSegment, type MeasureRange } from '@/lib/lesson-timeline';
 import { PracticeMetronome } from '@/lib/practice-metronome';
@@ -16,6 +18,8 @@ export function LessonPlayer() {
  const [practice, setPractice] = useState(timeline);
  const practiceRef = useRef(timeline);
  const initialPosition = -practice.countInMs;
+ const [mode, setMode] = useState<'watch' | 'practice'>('watch');
+ const videoRef = useRef<HTMLVideoElement | null>(null);
  const [view, setView] = useState<'falling' | 'score' | 'hybrid'>('hybrid');
  const [status, setStatus] = useState(microphonePrompt);
  const [active, setActive] = useState<number[]>([]);
@@ -319,17 +323,25 @@ export function LessonPlayer() {
    <div className="breadcrumb">CURSO / JAZZ / LIÇÃO 01</div>
    <div className="lesson-heading">
     <div>
-     <h1>Primeiros voicings: ii–V–I</h1>
-     <p className="muted">Uma introdução prática à harmonia jazzística em Dó maior.</p>
+     <h1>{mode === 'watch' ? bebopBluesManifest.title : 'Primeiros voicings: ii–V–I'}</h1>
+     <p className="muted">{mode === 'watch' ? 'Vê o vídeo e acompanha as notas a cair.' : 'Uma introdução prática à harmonia jazzística em Dó maior.'}</p>
     </div>
-    <span className="pill">{practice.bpm} BPM · {demoLesson.timeSignature.join('/')}</span>
+    <div className="switcher" role="group" aria-label="Modo">
+     <button aria-pressed={mode === 'watch'} onClick={() => setMode('watch')}>Ver</button>
+     <button aria-pressed={mode === 'practice'} onClick={() => { videoRef.current?.pause(); setMode('practice'); }}>Prática</button>
+    </div>
    </div>
    <div className="lesson-grid">
     <div className="lesson-main">
-     <video className="lesson-video" controls playsInline preload="metadata" src="/lessons/bebop-blues/clip.mp4">
+     <video ref={videoRef} className="lesson-video" controls playsInline preload="metadata" src={bebopBluesManifest.video.url}>
       O teu navegador não suporta vídeo HTML5.
      </video>
-     <div className="player-panel">
+     {mode === 'watch' && <div className="player-panel">
+      <div className="section-head"><h2>Notas a cair</h2></div>
+      <WatchView videoRef={videoRef} onPlay={playVirtualKey} />
+      {audioError && <p className="midi-status" role="status">{audioError}</p>}
+     </div>}
+     {mode === 'practice' && <div className="player-panel">
       <div className="section-head">
        <h2>Prática interativa</h2>
        <div className="switcher">
@@ -375,9 +387,14 @@ export function LessonPlayer() {
       {audioError && <p className="midi-status" role="status">{audioError}</p>}
       <div className="midi-status" role="status">{status}</div>
       <a className="audio-credit" href="/piano-samples/attribution.txt">Créditos do som de piano</a>
-     </div>
+     </div>}
     </div>
     <aside className="lesson-side">
+     {mode === 'watch' ? <div className="panel">
+      <p className="eyebrow">MODO VER</p>
+      <h3>{bebopBluesManifest.title}</h3>
+      <p className="muted">As notas seguem o relógio do vídeo: play, pausa e seek movem-nas.</p>
+     </div> : <>
      <div className="panel">
       <p className="eyebrow">AULA 01</p>
       <h3>O que vais aprender</h3>
@@ -417,6 +434,7 @@ export function LessonPlayer() {
           ? 'A repetição é um modo livre, sem pontuação.'
           : microphoneState !== 'off' ? 'No fim, revê as notas que o microfone conseguiu reconhecer em cada acorde.' : 'Toca com o microfone para rever as notas detetadas, ou usa MIDI para obter pontuação.'}</p>}
      </div>
+     </>}
     </aside>
    </div>
   </main>
