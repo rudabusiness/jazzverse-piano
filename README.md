@@ -41,7 +41,21 @@ O **JazzVerse Piano** une a gamificação em tempo real, o ensino com professore
 
 ---
 
-## Prática ii–V–I
+## Demo v1
+
+```bash
+npm ci
+npm run dev          # http://localhost:3000
+```
+
+- `/lesson` — clip de piano jazz com notas a cair sincronizadas com o vídeo (modo **Ver**, com loop A–B) e **Prática** com teclado MIDI sobre as notas publicadas (±150 ms, 50/75/100/120 % do andamento). Sem `content/bebop-blues/published.json` válido mostra o vídeo e "Notas ainda em revisão".
+- `/editor` — corrige o rascunho da IA (notas e âncoras), marca "Revisto à mão" e publica.
+- Pipeline completo (yt-dlp → ffmpeg → basic-pitch → editor → publicar): [docs/VIDEO_PIPELINE.md](./docs/VIDEO_PIPELINE.md).
+- Verificação: `npm run typecheck && npm test && npm run build`.
+
+## Prática ii–V–I (motor de demonstração, histórico)
+
+> Em v1 o `/lesson` já não usa a cadência ii–V–I nem o microfone: a prática corre sobre as notas publicadas. O texto abaixo descreve o motor original, que continua coberto pelos testes.
 
 Em `/lesson`, a cadência original de demonstração tem três compassos a 60 BPM. Notas descendentes, partitura e avaliação local usam os mesmos 12 eventos de `lib/lesson-timeline.ts`. O transporte tem um compasso de preparação visual, pausa e reinício. O botão Metrónomo ativa os cliques na preparação e durante a prática, com o primeiro tempo de cada compasso acentuado. Na grelha, E e D indicam a mão sugerida e os marcadores dourados junto às teclas mostram as notas que o microfone ou o MIDI detetam. A troca de vista preserva a tentativa. Podes praticar a 30, 45, 60 ou 72 BPM. Mudar o andamento reinicia a tentativa e mantém a tolerância MIDI de ±150 ms. Em Repetição, escolhe um compasso ou um trecho contínuo. O trecho volta ao início automaticamente após a primeira contagem preparatória. A repetição é prática livre, sem pontuação. Liga um teclado Web MIDI antes de começar uma tentativa completa para obter pontuação.
 

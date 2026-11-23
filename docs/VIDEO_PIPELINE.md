@@ -95,3 +95,36 @@ npx tsx scripts/import-draft.ts
 ```
 
 This writes `content/bebop-blues/draft.json` (`interactiveStatus: "draft"`, `reviewedByHand: false`, `source: {tool: "basic-pitch", version: "0.4.0"}`). Re-run it after the anchors change. `/lesson` does not read the draft.
+
+## End-to-end v1 pipeline (`bebop-blues`)
+
+```
+yt-dlp → ffmpeg (clip.mp4, faststart) → wav → basic-pitch 0.4.0 → scripts/import-draft.ts
+       → /editor (notes, anchors, "Revisto à mão", Publicar) → content/bebop-blues/published.json → /lesson
+```
+
+| # | Step | Where | Output |
+|---|------|-------|--------|
+| 1 | `yt-dlp --download-sections "*3:09-4:32" --force-keyframes-at-cuts …` | `pipeline-work/` (git-ignored) | `raw.mp4` |
+| 2 | `ffmpeg -i raw.mp4 -c copy -movflags +faststart …` | — | `public/lessons/bebop-blues/clip.mp4` (≈ 83 s, h264 + aac) |
+| 3 | `ffmpeg -i clip.mp4 -vn -ac 1 -ar 22050 …` | — | `pipeline-work/clip-audio.wav` |
+| 4 | `.venv/bin/basic-pitch … --save-note-events` | `.venv` (Python 3.10; basic-pitch 0.4.0, numpy 1.26.4, setuptools 69.5.1, tflite-runtime 2.14.0) | raw `.mid` → `content/bebop-blues/source/basic-pitch-raw.mid` |
+| 5 | `npx tsx scripts/import-draft.ts` | — | `content/bebop-blues/draft.json` (draft, not reviewed) |
+| 6 | `npm run dev` → `/editor` | browser | fix notes (move / delete / add), set ≥ 2 sync anchors, tick **Revisto à mão**, **Publicar** |
+| 7 | Commit `content/bebop-blues/published.json` | git | the only file `/lesson` accepts |
+| 8 | `/lesson` | browser | **Ver**: falling notes follow `video.currentTime` (A–B loop). **Prática**: the same published notes become the MIDI exercise |
+
+Rules:
+
+- The raw AI transcription is never the lesson. `published.json` is only valid with `reviewedByHand: true`, `interactiveStatus: "ready"`, ≥ 2 strictly increasing anchors and valid notes (`lib/published-loader.ts`). Anything else → `/lesson` shows the video and "Notas ainda em revisão"; no notes, no grading.
+- Publishing from `/editor` writes `published.json` and keeps `draft.json`. In production the file must be committed (the editor's write route is dev-only).
+- Check `docs/CONTENT_RIGHTS.md` before committing a clip or publishing.
+
+### Practice mode on the published notes
+
+`lib/published-practice.ts` (pure, tested in `tests/published-practice.test.ts`) turns the validated manifest into an exercise for the existing engine (`createPracticeTimeline`, `evaluatePractice`/`evaluateOnsets`):
+
+- **Tempo**: the average of the sync anchors, `60000 · Δbeat / Δms` between the first and last anchor. Practice tempos are 50 / 75 / 100 / 120 % of it. Rubato in the video is flattened to this straight grid.
+- **Notes**: beats are kept (shifted by whole 4-beat measures only if some start before beat 0); ids are the manifest ids, or a stable `p<index>-<midi>-<startBeat>`, and duplicates are made unique.
+- **Grading**: Web MIDI only, ±150 ms window, local. No chord labels exist in the manifest, so no "allowed tension" is credited: only the listed notes count. Without a connected MIDI keyboard no note is captured and no score is produced.
+- **Out of scope in v1**: microphone input, score/hybrid view and measure repeat on published notes (the on-screen keyboard shows C♯2–C5 only, so notes outside that range are graded but not drawn).

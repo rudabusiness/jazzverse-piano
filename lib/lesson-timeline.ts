@@ -1,4 +1,4 @@
-import { demoLesson } from './lesson';
+import { demoLesson, type MusicalNote } from './lesson';
 import { DEFAULT_WINDOW_MS, evaluateOnsets, type PlayedOnset } from './music-engine';
 
 const chords = [
@@ -13,20 +13,30 @@ export const measureRanges = chords.flatMap((_, first) =>
   chords.slice(first).map((_, offset) => ({ first, last: first + offset })),
 );
 
-export function createPracticeTimeline(bpm: number, range?: MeasureRange) {
+/** What the practice engine plays: notes on a beat axis plus one harmony label per measure. */
+export type PracticeSource = {
+  timeSignature: [number, number];
+  harmony: readonly { chord: string; allowedExtraPitchClasses: number[] }[];
+  notes: readonly (MusicalNote & { id?: string })[];
+};
+
+const demoSource: PracticeSource = { timeSignature: demoLesson.timeSignature, harmony: chords, notes: demoLesson.notes };
+
+export function createPracticeTimeline(bpm: number, range?: MeasureRange, source: PracticeSource = demoSource) {
   if (!Number.isFinite(bpm) || bpm <= 0) throw new RangeError('Invalid practice tempo');
   const beatMs = 60_000 / bpm;
-  const [beatsPerMeasure] = demoLesson.timeSignature;
-  if (range && !measureRanges.some(({ first, last }) => first === range.first && last === range.last)) {
+  const [beatsPerMeasure] = source.timeSignature;
+  const chords = source.harmony;
+  if (range && !(Number.isInteger(range.first) && Number.isInteger(range.last) && range.first >= 0 && range.first <= range.last && range.last < chords.length)) {
     throw new RangeError('Invalid measure range');
   }
   const firstMeasure = range?.first ?? 0;
   const startBeat = firstMeasure * beatsPerMeasure;
   const durationBeats = ((range?.last ?? chords.length - 1) - firstMeasure + 1) * beatsPerMeasure;
   const durationMs = durationBeats * beatMs;
-  const notes = demoLesson.notes.map((note, index) => ({
+  const notes = source.notes.map((note, index) => ({
     ...note,
-    id: `note-${index}`,
+    id: note.id ?? `note-${index}`,
     pitch: note.midi,
     atMs: (note.startBeat - startBeat) * beatMs,
     endMs: (note.startBeat - startBeat + note.durationBeats) * beatMs,
