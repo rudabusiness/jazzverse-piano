@@ -14,4 +14,11 @@ const draft = {
   notes,
 };
 writeFileSync(`${dir}/draft.json`, JSON.stringify(draft, null, 2) + '\n');
+// Immutable reference of the raw AI transcription (notes + the anchors used to convert them), so publishing can refuse an unedited AI draft.
+const aiOriginal = {
+  source: draft.source,
+  syncAnchors: manifest.syncAnchors,
+  notes: notes.map(n => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats })),
+};
+writeFileSync(`${dir}/source/ai-original.json`, JSON.stringify(aiOriginal, null, 2) + '\n');
 console.log(`draft.json: ${notes.length} notes`);

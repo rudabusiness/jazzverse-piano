@@ -5,7 +5,8 @@ import { NoteRoll } from './note-roll';
 import { useVideoBeat } from './use-video-beat';
 import { WatchView } from './watch-view';
 import type { LessonManifest } from '@/lib/lesson-manifest';
-import { buildPublished, hasEnoughAnchors, publishBlockedReason, rebaseNotes } from '@/lib/anchor-editor';
+import { buildPublished, hasEnoughAnchors, publishBlockedReason, rebaseNotes, unchangedFromAiOrMissing } from '@/lib/anchor-editor';
+import type { AiOriginal } from '@/lib/ai-original';
 import type { SyncAnchor } from '@/lib/video-sync';
 import { deleteNote, ensureIds, parseDraft, serializeDraft, type EditorNote } from '@/lib/note-editor';
 
@@ -20,7 +21,7 @@ function download(text: string, name: string) {
 }
 
 /** Editor: the clip with the notes falling (reflecting edits) and a piano-roll to add, move and delete notes. */
-export function EditorView({ manifest: initial, kind, fileName }: { manifest: LessonManifest; kind: 'published' | 'draft'; fileName: string }) {
+export function EditorView({ manifest: initial, kind, fileName, aiOriginal }: { manifest: LessonManifest; kind: 'published' | 'draft'; fileName: string; aiOriginal: AiOriginal | null }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [base, setBase] = useState(initial);
   const [source, setSource] = useState({ kind, fileName });
@@ -36,7 +37,7 @@ export function EditorView({ manifest: initial, kind, fileName }: { manifest: Le
   const current = useMemo(() => ({ ...base, syncAnchors: applied }), [base, applied]);
   const live = useMemo(() => ({ ...current, notes }), [current, notes]);
   const currentBeat = useVideoBeat(videoRef, applied);
-  const blocked = publishBlockedReason({ anchors, reviewedByHand: reviewed, noteCount: notes.length });
+  const blocked = publishBlockedReason({ anchors, reviewedByHand: reviewed, noteCount: notes.length, unchangedFromAi: unchangedFromAiOrMissing(notes, anchors, aiOriginal) });
   const canSaveDraft = notes.length > 0 && hasEnoughAnchors(anchors);
 
   function changeAnchors(next: SyncAnchor[]) {
@@ -65,7 +66,7 @@ export function EditorView({ manifest: initial, kind, fileName }: { manifest: Le
   }
 
   async function publish() {
-    const built = buildPublished(base, notes, anchors, reviewed);
+    const built = buildPublished(base, notes, anchors, reviewed, new Date(), aiOriginal);
     if (!built.ok) { setStatus({ ok: false, text: built.reason }); return; }
     download(built.text, 'published.json');
     let message = 'published.json descarregado (o rascunho não foi alterado).';

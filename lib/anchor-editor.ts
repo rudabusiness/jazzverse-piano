@@ -1,3 +1,4 @@
+import { isUnchangedFromAi, UNCHANGED_FROM_AI_REASON, type AiOriginal } from './ai-original';
 import type { LessonManifest } from './lesson-manifest';
 import { sortNotes, type EditorNote } from './note-editor';
 import { loadPublished } from './published-loader';
@@ -60,21 +61,27 @@ export function rebaseNotes<T extends EditorNote>(notes: readonly T[], from: rea
   });
 }
 
-export type PublishInput = { anchors: readonly SyncAnchor[]; reviewedByHand: boolean; noteCount: number };
+export type PublishInput = { anchors: readonly SyncAnchor[]; reviewedByHand: boolean; noteCount: number; unchangedFromAi?: boolean };
+
+/** `original` undefined = no AI check (tests); null = reference missing, so refuse (fail closed). */
+export function unchangedFromAiOrMissing(notes: readonly { midi: number; startBeat: number; durationBeats: number }[], anchors: readonly SyncAnchor[], original: AiOriginal | null | undefined): boolean {
+  return original === undefined ? false : original === null ? true : isUnchangedFromAi(notes, anchors, original);
+}
 
 /** Why "Publicar" is blocked, or null when allowed. */
-export function publishBlockedReason({ anchors, reviewedByHand, noteCount }: PublishInput): string | null {
+export function publishBlockedReason({ anchors, reviewedByHand, noteCount, unchangedFromAi }: PublishInput): string | null {
   if (!hasEnoughAnchors(anchors)) return 'Precisa de pelo menos 2 âncoras válidas (tempo e beat estritamente crescentes).';
   if (noteCount === 0) return 'Não há notas para publicar.';
   if (!reviewedByHand) return 'Marque "Revisto à mão" para poder publicar.';
+  if (unchangedFromAi) return UNCHANGED_FROM_AI_REASON;
   return null;
 }
 
 export type Published = { ok: true; text: string } | { ok: false; reason: string };
 
 /** Builds published.json text from the base manifest + current notes and anchors, validated with the student loader. Never touches draft.json. */
-export function buildPublished(base: LessonManifest, notes: readonly EditorNote[], anchors: readonly SyncAnchor[], reviewedByHand: boolean, now: Date = new Date()): Published {
-  const blocked = publishBlockedReason({ anchors, reviewedByHand, noteCount: notes.length });
+export function buildPublished(base: LessonManifest, notes: readonly EditorNote[], anchors: readonly SyncAnchor[], reviewedByHand: boolean, now: Date = new Date(), aiOriginal?: AiOriginal | null): Published {
+  const blocked = publishBlockedReason({ anchors, reviewedByHand, noteCount: notes.length, unchangedFromAi: unchangedFromAiOrMissing(notes, anchors, aiOriginal) });
   if (blocked) return { ok: false, reason: blocked };
   const manifest = { ...base, interactiveStatus: 'ready', reviewedByHand: true, publishedAt: now.toISOString(), syncAnchors: [...anchors], notes: sortNotes(notes) };
   const text = `${JSON.stringify(manifest, null, 2)}\n`;
@@ -85,8 +92,10 @@ export function buildPublished(base: LessonManifest, notes: readonly EditorNote[
 export const MAX_PUBLISHED_CHARS = 2_000_000;
 
 /** What the dev-only publish route accepts: text that passes the student loader. */
-export function checkPublishedForWrite(text: string): Published {
+export function checkPublishedForWrite(text: string, aiOriginal?: AiOriginal | null): Published {
   if (text.length > MAX_PUBLISHED_CHARS) return { ok: false, reason: 'Ficheiro demasiado grande' };
   const loaded = loadPublished(text);
-  return loaded.ok ? { ok: true, text } : { ok: false, reason: loaded.reason };
+  if (!loaded.ok) return { ok: false, reason: loaded.reason };
+  if (unchangedFromAiOrMissing(loaded.manifest.notes, loaded.manifest.syncAnchors, aiOriginal)) return { ok: false, reason: UNCHANGED_FROM_AI_REASON };
+  return { ok: true, text };
 }

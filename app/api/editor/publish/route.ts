@@ -1,6 +1,7 @@
 import { rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { checkPublishedForWrite } from '@/lib/anchor-editor';
+import { readAiOriginal } from '@/lib/ai-original-file';
 import { draftWriteEnabled } from '@/lib/note-editor';
 
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,8 @@ export async function POST(request: Request) {
   // Same-origin only, so another website cannot make a developer's browser publish.
   const origin = request.headers.get('origin');
   if (origin !== null && new URL(origin).host !== request.headers.get('host')) return new Response('Forbidden', { status: 403 });
-  const checked = checkPublishedForWrite(await request.text());
-  if (!checked.ok) return Response.json({ ok: false, reason: checked.reason }, { status: 400 });
+  const checked = checkPublishedForWrite(await request.text(), await readAiOriginal());
+  if (!checked.ok) return Response.json({ ok: false, reason: checked.reason }, { status: 422 });
   const dir = path.join(process.cwd(), 'content', 'bebop-blues');
   const tmp = path.join(dir, 'published.json.tmp');
   await writeFile(tmp, checked.text, 'utf8');
