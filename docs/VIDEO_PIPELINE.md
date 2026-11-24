@@ -91,8 +91,10 @@ ffmpeg -i public/lessons/bebop-blues/clip.mp4 -vn -ac 1 -ar 22050 pipeline-work/
 Import into the manifest format (needs `@tonejs/midi` 2.0.28; converts seconds → beats with the manifest's `syncAnchors`, hand = left if MIDI < 60 else right):
 
 ```bash
-npx tsx scripts/import-draft.ts
+npm run import-midi -- [ficheiro.mid]
 ```
+
+Without an argument it reads `content/bebop-blues/source/basic-pitch-raw.mid` and records `source: {tool: "basic-pitch", version: "0.4.0"}`. With a path it converts that `.mid` instead and records `source: {tool: "external-midi", file: "<file name>"}` (no version is invented). Example, a MIDI exported from MT3 (model `ismir2021`): `npm run import-midi -- ~/Downloads/mt3-clip.mid`. An external `.mid` is also a raw automatic transcription: correct it in `/editor` before publishing. In both cases `source/ai-original.json` is rewritten with the same notes, so the "unchanged from AI" check stays consistent with `draft.json`. The command fails (exit code ≠ 0, existing files untouched) if the file is missing, is not valid MIDI or has no notes; on success it prints `draft.json: N notas (fonte: …)`.
 
 This writes `content/bebop-blues/draft.json` (`interactiveStatus: "draft"`, `reviewedByHand: false`, `source: {tool: "basic-pitch", version: "0.4.0"}`). Re-run it after the anchors change. `/lesson` does not read the draft.
 
@@ -109,7 +111,7 @@ yt-dlp → ffmpeg (clip.mp4, faststart) → wav → basic-pitch 0.4.0 → script
 | 2 | `ffmpeg -i raw.mp4 -c copy -movflags +faststart …` | — | `public/lessons/bebop-blues/clip.mp4` (≈ 83 s, h264 + aac) |
 | 3 | `ffmpeg -i clip.mp4 -vn -ac 1 -ar 22050 …` | — | `pipeline-work/clip-audio.wav` |
 | 4 | `.venv/bin/basic-pitch … --save-note-events` | `.venv` (Python 3.10; basic-pitch 0.4.0, numpy 1.26.4, setuptools 69.5.1, tflite-runtime 2.14.0) | raw `.mid` → `content/bebop-blues/source/basic-pitch-raw.mid` |
-| 5 | `npx tsx scripts/import-draft.ts` | — | `content/bebop-blues/draft.json` (draft, not reviewed) |
+| 5 | `npm run import-midi -- [ficheiro.mid]` (default: Basic Pitch `.mid`; or an external one, e.g. MT3) | — | `content/bebop-blues/draft.json` (draft, not reviewed) |
 | 6 | `npm run dev` → `/editor` | browser | fix notes (move / delete / add), set ≥ 2 sync anchors, tick **Revisto à mão**, **Publicar** |
 | 7 | Commit `content/bebop-blues/published.json` | git | the only file `/lesson` accepts |
 | 8 | `/lesson` | browser | **Ver**: falling notes follow `video.currentTime` (A–B loop). **Prática**: the same published notes become the MIDI exercise |

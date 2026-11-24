@@ -1,6 +1,6 @@
 # jazzverse-piano — PLANO v1 (Fábrica de Apps)
 
-Aprovado pelo Rudá a 23/11/2026. SPEC: `SPEC-V1.md`.
+Aprovado pelo Rudá a 23/11/2026 (alteração às tarefas 4 e 6 aprovada a 24/11/2026). SPEC: `SPEC-V1.md`.
 
 ## PLANO (10 tarefas, por ordem)
 Regras para todas: trabalhar no ramo `feat/phase1-app-foundation`; não fundir o PR #2 nem publicar; no fim de cada tarefa `npm run typecheck && npm test && npm run build` passam.
@@ -18,16 +18,16 @@ Regras para todas: trabalhar no ramo `feat/phase1-app-foundation`; não fundir o
 - **Verificar:** teste de unidade: com âncoras (0 s → beat 0) e (10 s → beat 20), `currentTime` 5 s dá beat 10; play, pausa e seek no vídeo movem as notas.
 
 ### Tarefa 4 — Importar o rascunho da IA
-- **Fazer:** extrair o áudio do clipe, correr `basic-pitch` 0.4.0 → `.mid`; acrescentar `@tonejs/midi` 2.0.28 e um conversor `.mid` → notas do manifesto, gravado em `content/bebop-blues/draft.json` com `interactiveStatus: "draft"`.
-- **Verificar:** teste lê um `.mid` de fixture e produz o número e as alturas de notas esperados; `draft.json` existe e tem notas.
+- **Fazer:** extrair o áudio do clipe, correr `basic-pitch` 0.4.0 → `.mid`; acrescentar `@tonejs/midi` 2.0.28 e um conversor `.mid` → notas do manifesto, gravado em `content/bebop-blues/draft.json` com `interactiveStatus: "draft"`. Comando `npm run import-midi -- [ficheiro.mid]`: sem argumento usa o `.mid` do Basic Pitch; com argumento converte esse `.mid` (ex.: exportado do MT3).
+- **Verificar:** teste lê um `.mid` de fixture e produz o número e as alturas de notas esperados; `draft.json` existe e tem notas; `npm run import-midi -- <fixture>.mid` regrava `draft.json` com as notas dessa fixture.
 
 ### Tarefa 5 — `/lesson` só aceita o publicado
 - **Fazer:** o loader do aluno só carrega `published.json` com `reviewedByHand: true`, `interactiveStatus: "ready"` e ≥ 2 âncoras. Sem isso, mostra o vídeo e "Notas ainda em revisão", sem notas a cair.
 - **Verificar:** teste: o loader recusa um manifesto `draft` e um com 1 âncora, e aceita um válido; em `npm run dev`, sem `published.json`, `/lesson` mostra o aviso.
 
 ### Tarefa 6 — Editor: ver notas sobre o vídeo
-- **Fazer:** nova rota `/editor` que carrega `draft.json` (ou `published.json`, se existir) e mostra o clipe com as notas a cair (reutilizar `FallingNotes`), só leitura.
-- **Verificar:** abrir `/editor`, carregar em play, e as notas do rascunho acompanham o vídeo; seek move as notas.
+- **Fazer:** nova rota `/editor` que carrega `draft.json` (ou `published.json`, se existir) e mostra o clipe com as notas a cair (reutilizar `FallingNotes`), só leitura. Botão "Importar MIDI…" carrega um `.mid` do computador (ex.: do MT3) e substitui as notas mostradas.
+- **Verificar:** abrir `/editor`, carregar em play, e as notas do rascunho acompanham o vídeo; seek move as notas; "Importar MIDI…" com a fixture `.mid` mostra as notas dessa fixture.
 
 ### Tarefa 7 — Editor: mover, apagar e adicionar notas
 - **Fazer:** selecionar nota; arrastar no tempo e na altura; apagar (tecla Delete e botão); clicar para criar. Botão "Guardar rascunho" exporta `draft.json` (descarrega o ficheiro; em `npm run dev` pode também gravar em `content/` através de uma rota só de desenvolvimento).

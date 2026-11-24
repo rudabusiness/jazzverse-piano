@@ -2,7 +2,7 @@ import { timeAtBeat, type SyncAnchor } from './video-sync';
 
 /** Immutable reference of what the AI transcription produced: the notes and the anchors used to convert them to beats. */
 export type AiOriginal = {
-  source: { tool: string; version: string };
+  source: { tool: string; version?: string; file?: string };
   syncAnchors: SyncAnchor[];
   notes: { midi: number; startBeat: number; durationBeats: number }[];
 };
