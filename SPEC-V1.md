@@ -1,6 +1,6 @@
 # jazzverse-piano — SPEC v1 (Fábrica de Apps)
 
-Aprovada pelo Rudá a 23/11/2026. Fonte: 1 · Arquiteto. O `SPEC.md` (revisão 1.0, visão completa) continua a ser a referência de produto; para a v1 manda este ficheiro.
+Aprovada pelo Rudá a 23/11/2026 (alteração às tarefas 4 e 6 aprovada a 24/11/2026). Fonte: 1 · Arquiteto. O `SPEC.md` (revisão 1.0, visão completa) continua a ser a referência de produto; para a v1 manda este ficheiro.
 
 ## SPEC
 - **Objetivo:** demo da academia de piano jazz. O aluno vê o trecho 3:09–4:32 da aula *Bebop Blues* do Jeff Gardner com as notas a cair no piano, alinhadas ao vídeo, e repete um loop A–B. As notas vêm de um rascunho de IA que o Rudá corrige num editor da app.
@@ -9,7 +9,7 @@ Aprovada pelo Rudá a 23/11/2026. Fonte: 1 · Arquiteto. O `SPEC.md` (revisão 1
   1. Clipe local 3:09–4:32 (~83 s) de https://www.youtube.com/watch?v=p-hZGY7wNE8 no player `/lesson` (alojado por nós, sem YouTube embutido).
   2. Notas a cair sincronizadas com o vídeo (relógio = `currentTime` do vídeo, com ≥ 2 âncoras de sincronismo).
   3. Loop A–B por tempo no clipe.
-  4. Rascunho MIDI gerado por IA (Basic Pitch) e importado como `draft.json`.
+  4. Rascunho MIDI gerado por IA (Basic Pitch por defeito) e importado como `draft.json`; também aceita um `.mid` externo (ex.: MT3, modelo de piano `ismir2021`, corrido à mão no Colab).
   5. Editor `/editor`: ver notas sobre o vídeo, mover/apagar/adicionar notas, criar/mover âncoras, guardar rascunho e publicar `published.json` (exige "revisto à mão" + ≥ 2 âncoras). Sem base de dados: os ficheiros ficam no repositório.
   6. `/lesson` só carrega o publicado. Sem publicado, mostra o vídeo e "notas ainda em revisão".
   7. Opcional: modo prática já existente (Web MIDI, ±150 ms, andamento à escolha, nota no fim) sobre as notas publicadas.
