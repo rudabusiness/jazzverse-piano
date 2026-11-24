@@ -50,6 +50,7 @@ npm run dev          # http://localhost:3000
 
 - `/lesson` — clip de piano jazz com notas a cair sincronizadas com o vídeo (modo **Ver**, com loop A–B) e **Prática** com teclado MIDI sobre as notas publicadas (±150 ms, 50/75/100/120 % do andamento). Sem `content/bebop-blues/published.json` válido mostra o vídeo e "Notas ainda em revisão".
 - `/editor` — corrige o rascunho da IA (notas e âncoras), marca "Revisto à mão" e publica.
+- `npm run import-midi -- [ficheiro.mid]` — regrava `content/bebop-blues/draft.json` e `source/ai-original.json`. Sem argumento usa o MIDI do Basic Pitch; com um `.mid` externo (ex.: exportado do MT3, modelo ismir2021) usa esse ficheiro (`source: external-midi`). Continua a ser rascunho: tem de ser revisto no `/editor`.
 - Pipeline completo (yt-dlp → ffmpeg → basic-pitch → editor → publicar): [docs/VIDEO_PIPELINE.md](./docs/VIDEO_PIPELINE.md).
 - Verificação: `npm run typecheck && npm test && npm run build`.
 
