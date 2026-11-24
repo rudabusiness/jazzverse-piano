@@ -8,7 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "import-midi": "tsx scripts/import-draft.ts",
-    "test": "tsx --test tests/music.test.ts tests/video-sync.test.ts tests/midi-import.test.ts tests/published-loader.test.ts tests/editor-file.test.ts tests/note-editor.test.ts tests/anchor-editor.test.ts tests/ab-loop.test.ts tests/published-practice.test.ts tests/keyboard-range.test.ts tests/ai-original.test.ts tests/draft-import.test.ts",
+    "test": "tsx --test tests/music.test.ts tests/video-sync.test.ts tests/midi-import.test.ts tests/published-loader.test.ts tests/editor-file.test.ts tests/note-editor.test.ts tests/anchor-editor.test.ts tests/ab-loop.test.ts tests/published-practice.test.ts tests/keyboard-range.test.ts tests/ai-original.test.ts tests/draft-import.test.ts tests/editor-import.test.ts",
     "predev": "node scripts/prepare-pitchplease.mjs",
     "prebuild": "node scripts/prepare-pitchplease.mjs"
   },

@@ -7,6 +7,7 @@ import { WatchView } from './watch-view';
 import type { LessonManifest } from '@/lib/lesson-manifest';
 import { buildPublished, hasEnoughAnchors, publishBlockedReason, rebaseNotes, unchangedFromAiOrMissing } from '@/lib/anchor-editor';
 import type { AiOriginal } from '@/lib/ai-original';
+import { importMidiForEditor } from '@/lib/editor-import';
 import type { SyncAnchor } from '@/lib/video-sync';
 import { deleteNote, ensureIds, parseDraft, serializeDraft, type EditorNote } from '@/lib/note-editor';
 
@@ -21,8 +22,13 @@ function download(text: string, name: string) {
 }
 
 /** Editor: the clip with the notes falling (reflecting edits) and a piano-roll to add, move and delete notes. */
-export function EditorView({ manifest: initial, kind, fileName, aiOriginal }: { manifest: LessonManifest; kind: 'published' | 'draft'; fileName: string; aiOriginal: AiOriginal | null }) {
+export function EditorView({ manifest: initial, kind, fileName, aiOriginal: initialAi }: { manifest: LessonManifest; kind: 'published' | 'draft'; fileName: string; aiOriginal: AiOriginal | null }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const importRef = useRef<HTMLInputElement | null>(null);
+  const [aiOriginal, setAiOriginal] = useState<AiOriginal | null>(initialAi);
+  // Set only after a MIDI import: the next dev save also writes it as source/ai-original.json.
+  const [importedAi, setImportedAi] = useState<AiOriginal | null>(null);
+  const [importStatus, setImportStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [base, setBase] = useState(initial);
   const [source, setSource] = useState({ kind, fileName });
   const [notes, setNotes] = useState<EditorNote[]>(() => ensureIds(initial.notes));
@@ -57,8 +63,8 @@ export function EditorView({ manifest: initial, kind, fileName, aiOriginal }: { 
     let ok = true;
     if (devWrite) {
       try {
-        const res = await fetch('/api/editor/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: text });
-        if (res.ok) message += ' Gravado também em content/bebop-blues/draft.json.';
+        const res = await fetch('/api/editor/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ draft: text, ...(importedAi ? { aiOriginal: importedAi } : {}) }) });
+        if (res.ok) message += importedAi ? ' Gravado também em content/bebop-blues/draft.json e source/ai-original.json.' : ' Gravado também em content/bebop-blues/draft.json.';
         else { ok = false; message += ` Não gravou em content/: ${(await res.json().catch(() => null))?.reason ?? res.status}.`; }
       } catch { ok = false; message += ' Não gravou em content/: sem ligação ao servidor.'; }
     }
@@ -81,13 +87,26 @@ export function EditorView({ manifest: initial, kind, fileName, aiOriginal }: { 
     setStatus({ ok, text: message });
   }
 
+  async function importMidi(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const result = importMidiForEditor(new Uint8Array(await file.arrayBuffer()), file.name, applied);
+    if (!result.ok) { setImportStatus({ ok: false, text: result.reason }); return; }
+    setNotes(result.notes); setSelectedId(null); setReviewed(false);
+    setAiOriginal(result.aiOriginal); setImportedAi(result.aiOriginal);
+    setBase(b => ({ ...b, source: result.source } as typeof b));
+    setSource(s => ({ ...s, kind: 'draft' }));
+    setImportStatus({ ok: true, text: `Importado ${file.name}: ${result.notes.length} notas` });
+  }
+
   async function open(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
     const parsed = parseDraft(await file.text());
     if (!parsed.ok) { setStatus({ ok: false, text: `${file.name}: ${parsed.reason}` }); return; }
-    setBase(parsed.manifest); setNotes(parsed.notes); setAnchors(parsed.manifest.syncAnchors); setApplied(parsed.manifest.syncAnchors); setReviewed(false); setSelectedId(null); setSource({ kind: 'draft', fileName: file.name });
+    setBase(parsed.manifest); setNotes(parsed.notes); setAnchors(parsed.manifest.syncAnchors); setApplied(parsed.manifest.syncAnchors); setReviewed(false); setSelectedId(null); setSource({ kind: 'draft', fileName: file.name }); setImportedAi(null); setAiOriginal(initialAi); setImportStatus(null);
     setStatus({ ok: true, text: `${file.name} aberto: ${parsed.notes.length} notas.` });
   }
 
@@ -114,6 +133,8 @@ export function EditorView({ manifest: initial, kind, fileName, aiOriginal }: { 
         <button type="button" className="primary" data-testid="btn-save-draft" onClick={save} disabled={!canSaveDraft} title={canSaveDraft ? undefined : 'Precisa de notas e de pelo menos 2 âncoras válidas'}>Guardar rascunho</button>
         <button type="button" data-testid="btn-delete-note" onClick={remove} disabled={!selectedId}>Apagar nota</button>
         <label className="editor-check"><input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} /> Snap 1/8 de beat</label>
+        <button type="button" data-testid="btn-import-midi" onClick={() => importRef.current?.click()}>Importar MIDI…</button>
+        <input ref={importRef} type="file" accept=".mid,.midi,audio/midi" hidden data-testid="input-import-midi" onChange={importMidi} />
         <label className="editor-check">Abrir JSON <input type="file" accept=".json,application/json" data-testid="input-open-json" onChange={open} /></label>
       </div>
       <div className="player-controls editor-tools">
@@ -121,6 +142,7 @@ export function EditorView({ manifest: initial, kind, fileName, aiOriginal }: { 
         <button type="button" className="primary" data-testid="btn-publish" onClick={publish} disabled={blocked !== null}>Publicar</button>
         {blocked && <span className="editor-err" data-testid="publish-blocked-reason">{blocked}</span>}
       </div>
+      {importStatus && <p className={importStatus.ok ? 'editor-ok' : 'editor-err'} role="status" data-testid="import-midi-status">{importStatus.text}</p>}
       {status && <p className={status.ok ? 'editor-ok' : 'editor-err'} role="status" data-testid="editor-status">{status.text}</p>}
       <p className="muted">Clica numa nota para a selecionar e arrasta-a no tempo e na altura; clica num espaço vazio para criar uma nota (0,5 beat); Delete/Backspace apaga a selecionada; clica na régua para ir a esse ponto do vídeo.</p>
       <NoteRoll base={current} notes={notes} setNotes={setNotes} selectedId={selectedId} setSelectedId={setSelectedId} snap={snap} videoRef={videoRef} onDelete={remove} />
